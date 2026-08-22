@@ -6,7 +6,7 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
 
     steps:
     - uses: actions/checkout@v4
@@ -19,20 +19,20 @@ jobs:
     - name: Install System Dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install -y git zip unzip openjdk-17-jdk python3-pip autoconf libtool pkg-config zlib1g-dev libncurses5-dev libncursesw5-dev libtinfo6 cmake libffi-dev libssl-dev
+        sudo apt-get install -y git zip unzip openjdk-17-jdk python3-pip autoconf libtool pkg-config zlib1g-dev libncurses5-dev libncursesw5-dev libtinfo5 cmake libffi-dev libssl-dev
 
     - name: Install Python Dependencies
       run: |
         python -m pip install --upgrade pip
         pip install "cython<3.0.0" buildozer
 
-    - name: Accept Android Licenses & Build APK
+    - name: Build APK (Com NDK isolado)
+      env:
+        # Remove a referencia do NDK 27 do GitHub para forcar o Buildozer a usar a r25b
+        ANDROID_NDK_HOME: ""
+        ANDROID_NDK_LATEST_HOME: ""
       run: |
-        mkdir -p ~/.android
-        touch ~/.android/repositories.cfg
-        # Aceita preventivamente todas as licencas do SDK do Android
         yes | buildozer android debug || true
-        # Re-executa para garantir a geracao do APK com licencas aceitas
         buildozer android debug
 
     - name: Upload APK
