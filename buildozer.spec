@@ -5,7 +5,7 @@ package.name = testesom
 package.domain = org.test
 
 source.dir = .
-source.include_exts = py,ogg,mp3
+source.include_exts = py,png,jpg,kv,atlas,ogg,wav,mp3
 
 version = 0.1
 requirements = python3,kivy
