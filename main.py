@@ -1,3 +1,4 @@
+import os
 import kivy
 from kivy.app import App
 from kivy.uix.button import Button
@@ -7,8 +8,9 @@ kivy.require('2.3.0')
 
 class TesteSomApp(App):
     def build(self):
-        # Tenta carregar o arquivo ogg
-        self.sound = SoundLoader.load('sirene.ogg')
+        # Localiza o arquivo de forma precisa dentro do pacote instalado no Android
+        caminho_som = os.path.join(os.path.dirname(__file__), 'sirene.ogg')
+        self.sound = SoundLoader.load(caminho_som)
         
         self.btn = Button(
             text="TOCAR SIRENE",
@@ -21,7 +23,7 @@ class TesteSomApp(App):
     def tocar(self, instance):
         if self.sound:
             self.btn.text = "SOM CARREGADO! TOCANDO..."
-            self.sound.volume = 1.0  # Força volume máximo
+            self.sound.volume = 1.0
             if self.sound.state == 'play':
                 self.sound.stop()
             self.sound.play()
