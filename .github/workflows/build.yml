@@ -17,8 +17,12 @@ jobs:
       run: |
         yes | buildozer --warn_on_root=0 android debug
 
+    - name: Rename APK
+      run: |
+        mv bin/*.apk bin/teste_som.apk
+
     - name: Upload APK
       uses: actions/upload-artifact@v4
       with:
-        name: app-kivy-debug
-        path: bin/*.apk
+        name: teste_som
+        path: bin/teste_som.apk
