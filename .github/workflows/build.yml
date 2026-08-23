@@ -32,7 +32,7 @@ jobs:
         python -m pip install --upgrade pip
         pip install buildozer cython==0.29.36
 
-    - name: Setup Buildozer SDK Paths and Licenses
+    - name: Setup Buildozer SDK Paths and Install Target API
       run: |
         # 1. Prepara a estrutura do SDK do Buildozer
         BUILDOZER_SDK="$HOME/.buildozer/android/platform/android-sdk"
@@ -40,14 +40,16 @@ jobs:
         mkdir -p "$BUILDOZER_SDK/licenses"
         mkdir -p "$BUILDOZER_SDK/tools/bin"
 
-        # 2. Aceita licencas no SDK do sistema e copia para o Buildozer
+        # 2. Instala a plataforma Android 34 e aceita licencas
+        yes | sdkmanager "platforms;android-34" "build-tools;34.0.0" "platform-tools" || true
         yes | sdkmanager --licenses || true
-        cp -r $ANDROID_SDK_ROOT/licenses/* "$BUILDOZER_SDK/licenses/" 2>/dev/null || true
 
-        # 3. Copia/Vincula o cmdline-tools do sistema diretamente para o SDK do Buildozer
+        # 3. Copia licencas e vincula plataformas ao Buildozer
+        cp -r $ANDROID_SDK_ROOT/licenses/* "$BUILDOZER_SDK/licenses/" 2>/dev/null || true
         ln -sf $ANDROID_SDK_ROOT/cmdline-tools/latest "$BUILDOZER_SDK/cmdline-tools/latest"
         ln -sf $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager "$BUILDOZER_SDK/tools/bin/sdkmanager"
         ln -sf $ANDROID_SDK_ROOT/platform-tools "$BUILDOZER_SDK/platform-tools"
+        ln -sf $ANDROID_SDK_ROOT/platforms "$BUILDOZER_SDK/platforms"
 
     - name: Build APK
       env:
