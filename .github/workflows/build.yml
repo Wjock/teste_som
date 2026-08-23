@@ -26,26 +26,14 @@ jobs:
         python -m pip install --upgrade pip
         pip install "cython<3.0.0" buildozer
 
-    - name: Setup Android SDK Tools
-      run: |
-        # Prepara a estrutura do Android SDK com as ferramentas de linha de comando
-        mkdir -p ~/.buildozer/android/platform/android-sdk/tools/bin
-        wget -q https://dl.google.com/android/repository/commandlinetools-linux-9477386_latest.zip -O cmdline.zip
-        unzip -q cmdline.zip -d ~/.buildozer/android/platform/android-sdk/
-        mv ~/.buildozer/android/platform/android-sdk/cmdline-tools/* ~/.buildozer/android/platform/android-sdk/tools/ 2>/dev/null || true
-        rm cmdline.zip
-
-        # Aceita antecipadamente as licenças do SDK
-        mkdir -p ~/.buildozer/android/platform/android-sdk/licenses
-        echo -e "\n24545115b802feb56b13421001c1f2e0a717c630" > ~/.buildozer/android/platform/android-sdk/licenses/android-sdk-license
-        echo -e "\n84831b9402116df57d54477061225967747380a7" > ~/.buildozer/android/platform/android-sdk/licenses/android-sdk-preview-license
-
     - name: Build APK
       env:
+        # Forca o aceite automatico de licencas do SDK do Android via SDKMANAGER
+        BUILDOZER_ACCEPT_LICENSES: "1"
         ANDROID_NDK_HOME: ""
         ANDROID_NDK_LATEST_HOME: ""
       run: |
-        buildozer -v android debug
+        yes | buildozer -v android debug
 
     - name: Upload APK
       uses: actions/upload-artifact@v4
