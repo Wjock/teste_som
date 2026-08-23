@@ -32,21 +32,25 @@ jobs:
         python -m pip install --upgrade pip
         pip install buildozer cython==0.29.36
 
-    - name: Accept Licenses and Link SDK
+    - name: Accept Licenses and Link SDK Binaries
       run: |
+        # 1. Aceita todas as licencas do SDK do runner
         yes | sdkmanager --licenses || true
         
-        # Cria a pasta de licencas do Buildozer e copia as licencas aceitas
-        mkdir -p ~/.buildozer/android/platform/android-sdk/licenses
-        cp -r $ANDROID_SDK_ROOT/licenses/* ~/.buildozer/android/platform/android-sdk/licenses/ 2>/dev/null || true
+        # 2. Garante o atalho do sdkmanager tanto na SDK do sistema quanto na pasta interna do Buildozer
+        mkdir -p $ANDROID_SDK_ROOT/tools/bin
+        ln -sf $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager $ANDROID_SDK_ROOT/tools/bin/sdkmanager
         
-        # Cria o link simbolico do sdkmanager para a pasta tools/bin legada
         mkdir -p ~/.buildozer/android/platform/android-sdk/tools/bin
+        mkdir -p ~/.buildozer/android/platform/android-sdk/licenses
         ln -sf $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager ~/.buildozer/android/platform/android-sdk/tools/bin/sdkmanager
+        
+        # 3. Copia as licencas aceitas diretamente para o Buildozer
+        cp -r $ANDROID_SDK_ROOT/licenses/* ~/.buildozer/android/platform/android-sdk/licenses/ 2>/dev/null || true
 
     - name: Build APK
       run: |
-        yes | buildozer -v android debug
+        buildozer -v android debug
 
     - name: Upload APK
       uses: actions/upload-artifact@v4
