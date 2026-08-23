@@ -13,29 +13,20 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
-    - name: Prepare SDK Tools and Accept Licenses
+    - name: Pre-configure SDK Dir and Licenses
       run: |
+        # Prepara a pasta padrao do SDK antes da execucao do buildozer
         SDK_DIR="/github/home/.buildozer/android/platform/android-sdk"
-        mkdir -p "$SDK_DIR/cmdline-tools"
         mkdir -p "$SDK_DIR/licenses"
 
-        # Injeta as licencas pre-aprovadas
+        # Injeta as chaves de licenca pré-aprovadas da Google
         echo -e "\n89330422945ba52063944006f23e64d4730637b0\nd56f5187479451eabf01fb78af6d623501d07141\n7a93463f031e200753a373977531398c8e146c65\n84831b9409646aed3fee35e3022141983513410f\n7863a34a17950c0c707525381a1796d420786524\n504667f4c0571343f11d137b079095f9c490a072\ne6b7c2ee7d02636a04a37f5f403932e6047c699f" > "$SDK_DIR/licenses/android-sdk-license"
-
-        # Baixa as ferramentas com a URL atualizada via Python
-        python3 -c "import urllib.request; req = urllib.request.Request('https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip', headers={'User-Agent': 'Mozilla/5.0'}); data = urllib.request.urlopen(req).read(); open('cmdline-tools.zip', 'wb').write(data)"
-        
-        unzip -q cmdline-tools.zip -d "$SDK_DIR/cmdline-tools"
-        mv "$SDK_DIR/cmdline-tools/cmdline-tools" "$SDK_DIR/cmdline-tools/latest"
-        rm cmdline-tools.zip
-
-        # Cria o link simbolico do sdkmanager para a pasta tools/bin exigida pelo Buildozer
-        mkdir -p "$SDK_DIR/tools"
-        ln -s "$SDK_DIR/cmdline-tools/latest/bin" "$SDK_DIR/tools/bin"
+        echo -e "\n84831b9409646aed3fee35e3022141983513410f" > "$SDK_DIR/licenses/android-sdk-preview-license"
 
     - name: Build APK
       env:
         BUILDOZER_WARN_ON_ROOT: "0"
+        ACCEPT_SDK_LICENSES: "1"
       run: |
         yes | buildozer -v android debug
 
