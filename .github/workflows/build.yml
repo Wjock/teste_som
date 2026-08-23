@@ -7,28 +7,43 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    container:
-      image: ghcr.io/kivy/buildozer:latest
 
     steps:
     - uses: actions/checkout@v4
 
-    - name: Pre-configure SDK Dir and Licenses
-      run: |
-        # Prepara a pasta padrao do SDK antes da execucao do buildozer
-        SDK_DIR="/github/home/.buildozer/android/platform/android-sdk"
-        mkdir -p "$SDK_DIR/licenses"
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-python-version: '3.11'
 
-        # Injeta as chaves de licenca pré-aprovadas da Google
-        echo -e "\n89330422945ba52063944006f23e64d4730637b0\nd56f5187479451eabf01fb78af6d623501d07141\n7a93463f031e200753a373977531398c8e146c65\n84831b9409646aed3fee35e3022141983513410f\n7863a34a17950c0c707525381a1796d420786524\n504667f4c0571343f11d137b079095f9c490a072\ne6b7c2ee7d02636a04a37f5f403932e6047c699f" > "$SDK_DIR/licenses/android-sdk-license"
-        echo -e "\n84831b9409646aed3fee35e3022141983513410f" > "$SDK_DIR/licenses/android-sdk-preview-license"
+    - name: Set up JDK 17
+      uses: actions/setup-java@v4
+      with:
+        distribution: 'temurin'
+        java-version: '17'
+
+    - name: Set up Android SDK
+      uses: android-actions/setup-android@v3
+
+    - name: Install Dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y build-essential ccache git libffi-dev libssl-dev gettext zlib1g-dev zip unzip
+        python -m pip install --upgrade pip
+        pip install buildozer cython==0.29.36
+
+    - name: Accept Android SDK Licenses & Fix Command-line Tools
+      run: |
+        yes | sdkmanager --licenses || true
+        sdkmanager "cmdline-tools;latest" "platform-tools" "platforms;android-33" "build-tools;33.0.2"
+        
+        # Cria o atalho da pasta antiga que o Buildozer ainda procura
+        mkdir -p $ANDROID_SDK_ROOT/tools/bin
+        ln -sf $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager $ANDROID_SDK_ROOT/tools/bin/sdkmanager
 
     - name: Build APK
-      env:
-        BUILDOZER_WARN_ON_ROOT: "0"
-        ACCEPT_SDK_LICENSES: "1"
       run: |
-        yes | buildozer -v android debug
+        buildozer -v android debug
 
     - name: Upload APK
       uses: actions/upload-artifact@v4
