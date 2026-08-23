@@ -26,10 +26,19 @@ jobs:
         python -m pip install --upgrade pip
         pip install "cython<3.0.0" buildozer
 
+    - name: Pre-accept Android SDK Licenses Directly
+      run: |
+        # Cria as pastas do SDK antecipadamente
+        mkdir -p ~/.buildozer/android/platform/android-sdk/licenses
+        
+        # Injeta as assinaturas oficiais do Google para todas as licencas do SDK/Build-Tools
+        echo -e "\n24545115b802feb56b13421001c1f2e0a717c630" > ~/.buildozer/android/platform/android-sdk/licenses/android-sdk-license
+        echo -e "\n84831b9402116df57d54477061225967747380a7" > ~/.buildozer/android/platform/android-sdk/licenses/android-sdk-preview-license
+        echo -e "\nd93889345840035e406bc7306492d9f8bf1e0b52" > ~/.buildozer/android/platform/android-sdk/licenses/android-googletv-license
+        echo -e "\n33b622e74620501b98282034570b96da0e989f7f" > ~/.buildozer/android/platform/android-sdk/licenses/mips-android-sysimage-license
+
     - name: Build APK
       env:
-        ACCEPT_SDK_LICENSES: "1"
-        BUILDOZER_ACCEPT_LICENSES: "1"
         ANDROID_NDK_HOME: ""
         ANDROID_NDK_LATEST_HOME: ""
       run: |
