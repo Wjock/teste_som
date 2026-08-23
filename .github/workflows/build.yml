@@ -32,17 +32,26 @@ jobs:
         python -m pip install --upgrade pip
         pip install buildozer cython==0.29.36
 
-    - name: Accept Licenses and Fix SDK Tools
+    - name: Install Build-Tools 33 and Pre-accept Licenses
       run: |
+        # 1. Instala explicitamente a versao 33.0.2 das build-tools e aceita todas as licencas
+        yes | sdkmanager "build-tools;33.0.2" "platforms;android-33" "platform-tools" || true
         yes | sdkmanager --licenses || true
-        # Garante o atalho sdkmanager para p4a dentro do SDK oficial
-        mkdir -p /usr/local/lib/android/sdk/tools/bin
-        ln -sf /usr/local/lib/android/sdk/cmdline-tools/latest/bin/sdkmanager /usr/local/lib/android/sdk/tools/bin/sdkmanager
+
+        # 2. Prepara e injeta as chaves de licencas na pasta do Buildozer
+        BUILDOZER_SDK="$HOME/.buildozer/android/platform/android-sdk"
+        mkdir -p "$BUILDOZER_SDK/licenses"
+        mkdir -p "$ANDROID_SDK_ROOT/licenses"
+
+        cp -r $ANDROID_SDK_ROOT/licenses/* "$BUILDOZER_SDK/licenses/" 2>/dev/null || true
+
+        # 3. Garante o link do sdkmanager antigo para o novo em ambos os caminhos
+        mkdir -p "$ANDROID_SDK_ROOT/tools/bin"
+        mkdir -p "$BUILDOZER_SDK/tools/bin"
+        ln -sf $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager "$ANDROID_SDK_ROOT/tools/bin/sdkmanager"
+        ln -sf $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager "$BUILDOZER_SDK/tools/bin/sdkmanager"
 
     - name: Build APK
-      env:
-        ANDROIDSDK: /usr/local/lib/android/sdk
-        ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
       run: |
         buildozer -v android debug
 
