@@ -19,23 +19,31 @@ jobs:
     - name: Install System Dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install -y git zip unzip openjdk-17-jdk python3-pip autoconf libtool pkg-config zlib1g-dev libncurses5-dev libncursesw5-dev libtinfo5 cmake libffi-dev libssl-dev
+        sudo apt-get install -y git zip unzip openjdk-17-jdk python3-pip autoconf libtool pkg-config zlib1g-dev libncurses5-dev libncursesw5-dev libtinfo5 cmake libffi-dev libssl-dev wget
 
     - name: Install Python Dependencies
       run: |
         python -m pip install --upgrade pip
         pip install "cython<3.0.0" buildozer
 
-    - name: Pre-accept Android SDK Licenses Directly
+    - name: Setup Android SDK and Command Line Tools
       run: |
-        # Cria as pastas do SDK antecipadamente
-        mkdir -p ~/.buildozer/android/platform/android-sdk/licenses
+        # 1. Cria a estrutura exata de diretorios para o Android SDK no Buildozer
+        mkdir -p ~/.buildozer/android/platform/android-sdk/tools/bin
         
-        # Injeta as assinaturas oficiais do Google para todas as licencas do SDK/Build-Tools
+        # 2. Baixa as ferramentas de linha de comando oficiais do Android SDK
+        wget -q https://dl.google.com/android/repository/commandlinetools-linux-9477386_latest.zip -O cmdline.zip
+        unzip -q cmdline.zip
+        
+        # 3. Copia os binarios para a pasta que o Buildozer procura
+        cp -r cmdline-tools/bin/* ~/.buildozer/android/platform/android-sdk/tools/bin/
+        cp -r cmdline-tools/lib ~/.buildozer/android/platform/android-sdk/tools/
+        rm -rf cmdline.zip cmdline-tools
+
+        # 4. Injeta os arquivos de licenca aceitos diretamente no SDK
+        mkdir -p ~/.buildozer/android/platform/android-sdk/licenses
         echo -e "\n24545115b802feb56b13421001c1f2e0a717c630" > ~/.buildozer/android/platform/android-sdk/licenses/android-sdk-license
         echo -e "\n84831b9402116df57d54477061225967747380a7" > ~/.buildozer/android/platform/android-sdk/licenses/android-sdk-preview-license
-        echo -e "\nd93889345840035e406bc7306492d9f8bf1e0b52" > ~/.buildozer/android/platform/android-sdk/licenses/android-googletv-license
-        echo -e "\n33b622e74620501b98282034570b96da0e989f7f" > ~/.buildozer/android/platform/android-sdk/licenses/mips-android-sysimage-license
 
     - name: Build APK
       env:
