@@ -26,24 +26,24 @@ jobs:
         python -m pip install --upgrade pip
         pip install "cython<3.0.0" buildozer
 
-    - name: Download Android Command Line Tools & Accept Licenses
+    - name: Setup Android SDK, Install Build-Tools 33.0.2 & Accept Licenses
       run: |
-        # 1. Cria a estrutura oficial do Android SDK que o Buildozer espera
+        # Prepara pastas
         mkdir -p ~/.buildozer/android/platform/android-sdk/tools/bin
-        
-        # 2. Baixa as ferramentas de linha de comando do Android (cmdline-tools)
+        mkdir -p ~/.buildozer/android/platform/android-sdk/licenses
+
+        # Baixa commandlinetools
         wget -q https://dl.google.com/android/repository/commandlinetools-linux-9477386_latest.zip -O cmdline.zip
         unzip -q cmdline.zip
-        
-        # 3. Copia os binarios do sdkmanager para a pasta tools/bin
         cp -r cmdline-tools/bin/* ~/.buildozer/android/platform/android-sdk/tools/bin/
         cp -r cmdline-tools/lib ~/.buildozer/android/platform/android-sdk/tools/
         rm -rf cmdline.zip cmdline-tools
 
-        # 4. Injeta as chaves de licenca aceitas
-        mkdir -p ~/.buildozer/android/platform/android-sdk/licenses
-        echo -e "\n24545115b802feb56b13421001c1f2e0a717c630" > ~/.buildozer/android/platform/android-sdk/licenses/android-sdk-license
-        echo -e "\n84831b9402116df57d54477061225967747380a7" > ~/.buildozer/android/platform/android-sdk/licenses/android-sdk-preview-license
+        # Aceita licencas do SDK diretamente via sdkmanager
+        yes | ~/.buildozer/android/platform/android-sdk/tools/bin/sdkmanager --sdk_root=/home/runner/.buildozer/android/platform/android-sdk --licenses || true
+
+        # Instala build-tools 33.0.2 diretamente antes de rodar o buildozer
+        yes | ~/.buildozer/android/platform/android-sdk/tools/bin/sdkmanager --sdk_root=/home/runner/.buildozer/android/platform/android-sdk "build-tools;33.0.2" "platforms;android-33" "platform-tools" || true
 
     - name: Build APK
       env:
