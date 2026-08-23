@@ -26,10 +26,16 @@ jobs:
         python -m pip install --upgrade pip
         pip install "cython<3.0.0" buildozer
 
-    - name: Pre-accept Android SDK Licenses via SDKManager
+    - name: Pre-accept Buildozer SDK Licenses
       run: |
-        # Aceita todas as licencas do SDK utilizando o sdkmanager nativo do Runner
-        yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses || true
+        # Cria a pasta de licencas no caminho exato que o Buildozer utiliza
+        mkdir -p ~/.buildozer/android/platform/android-sdk/licenses
+        
+        # Injeta as assinaturas oficiais de licencas do Google
+        echo -e "\n24545115b802feb56b13421001c1f2e0a717c630" > ~/.buildozer/android/platform/android-sdk/licenses/android-sdk-license
+        echo -e "\n84831b9402116df57d54477061225967747380a7" > ~/.buildozer/android/platform/android-sdk/licenses/android-sdk-preview-license
+        echo -e "\nd93889345840035e406bc7306492d9f8bf1e0b52" > ~/.buildozer/android/platform/android-sdk/licenses/android-googletv-license
+        echo -e "\n33b622e74620501b98282034570b96da0e989f7f" > ~/.buildozer/android/platform/android-sdk/licenses/mips-android-sysimage-license
 
     - name: Build APK
       env:
