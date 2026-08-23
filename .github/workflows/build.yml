@@ -13,15 +13,17 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
-    - name: Pre-accept Android SDK Licenses
+    - name: Pre-accept Android SDK Licenses in Buildozer Path
       run: |
-        yes | sdkmanager --licenses || true
+        mkdir -p /github/home/.buildozer/android/platform/android-sdk/licenses
+        echo -e "\n89330422945ba52063944006f23e64d4730637b0\nd56f5187479451eabf01fb78af6d623501d07141\n7a93463f031e200753a373977531398c8e146c65\n84831b9409646aed3fee35e3022141983513410f\n7863a34a17950c0c707525381a1796d420786524\n504667f4c0571343f11d137b079095f9c490a072\ne6b7c2ee7d02636a04a37f5f403932e6047c699f" > /github/home/.buildozer/android/platform/android-sdk/licenses/android-sdk-license
+        echo -e "\n84831b9409646aed3fee35e3022141983513410f" > /github/home/.buildozer/android/platform/android-sdk/licenses/android-sdk-preview-license
 
     - name: Build APK
       env:
         BUILDOZER_WARN_ON_ROOT: "0"
       run: |
-        buildozer -v android debug
+        yes | buildozer -v android debug
 
     - name: Upload APK
       uses: actions/upload-artifact@v4
