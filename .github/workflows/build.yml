@@ -26,13 +26,16 @@ jobs:
         python -m pip install --upgrade pip
         pip install "cython<3.0.0" buildozer
 
-    - name: Pre-accept Android SDK Licenses
+    - name: Setup Android SDK Tools
       run: |
-        # Cria a pasta de licencas pre-aprovadas para o Buildozer e SDKmanager
-        mkdir -p ~/.android
-        touch ~/.android/repositories.cfg
-        
-        # Injeta as chaves de licenca aceitas diretamente na estrutura do SDK
+        # Prepara a estrutura do Android SDK com as ferramentas de linha de comando
+        mkdir -p ~/.buildozer/android/platform/android-sdk/tools/bin
+        wget -q https://dl.google.com/android/repository/commandlinetools-linux-9477386_latest.zip -O cmdline.zip
+        unzip -q cmdline.zip -d ~/.buildozer/android/platform/android-sdk/
+        mv ~/.buildozer/android/platform/android-sdk/cmdline-tools/* ~/.buildozer/android/platform/android-sdk/tools/ 2>/dev/null || true
+        rm cmdline.zip
+
+        # Aceita antecipadamente as licenças do SDK
         mkdir -p ~/.buildozer/android/platform/android-sdk/licenses
         echo -e "\n24545115b802feb56b13421001c1f2e0a717c630" > ~/.buildozer/android/platform/android-sdk/licenses/android-sdk-license
         echo -e "\n84831b9402116df57d54477061225967747380a7" > ~/.buildozer/android/platform/android-sdk/licenses/android-sdk-preview-license
