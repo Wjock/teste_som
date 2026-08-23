@@ -32,23 +32,17 @@ jobs:
         python -m pip install --upgrade pip
         pip install buildozer cython==0.29.36
 
-    - name: Accept Licenses and Link SDK Binaries
+    - name: Accept Licenses and Fix SDK Tools
       run: |
-        # 1. Aceita todas as licencas do SDK do runner
         yes | sdkmanager --licenses || true
-        
-        # 2. Garante o atalho do sdkmanager tanto na SDK do sistema quanto na pasta interna do Buildozer
-        mkdir -p $ANDROID_SDK_ROOT/tools/bin
-        ln -sf $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager $ANDROID_SDK_ROOT/tools/bin/sdkmanager
-        
-        mkdir -p ~/.buildozer/android/platform/android-sdk/tools/bin
-        mkdir -p ~/.buildozer/android/platform/android-sdk/licenses
-        ln -sf $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager ~/.buildozer/android/platform/android-sdk/tools/bin/sdkmanager
-        
-        # 3. Copia as licencas aceitas diretamente para o Buildozer
-        cp -r $ANDROID_SDK_ROOT/licenses/* ~/.buildozer/android/platform/android-sdk/licenses/ 2>/dev/null || true
+        # Garante o atalho sdkmanager para p4a dentro do SDK oficial
+        mkdir -p /usr/local/lib/android/sdk/tools/bin
+        ln -sf /usr/local/lib/android/sdk/cmdline-tools/latest/bin/sdkmanager /usr/local/lib/android/sdk/tools/bin/sdkmanager
 
     - name: Build APK
+      env:
+        ANDROIDSDK: /usr/local/lib/android/sdk
+        ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
       run: |
         buildozer -v android debug
 
