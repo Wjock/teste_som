@@ -28,12 +28,12 @@ jobs:
 
     - name: Build APK
       env:
-        # Forca o aceite automatico de licencas do SDK do Android via SDKMANAGER
+        ACCEPT_SDK_LICENSES: "1"
         BUILDOZER_ACCEPT_LICENSES: "1"
         ANDROID_NDK_HOME: ""
         ANDROID_NDK_LATEST_HOME: ""
       run: |
-        yes | buildozer -v android debug
+        buildozer -v android debug
 
     - name: Upload APK
       uses: actions/upload-artifact@v4
