@@ -32,26 +32,28 @@ jobs:
         python -m pip install --upgrade pip
         pip install buildozer cython==0.29.36
 
-    - name: Install Build-Tools 33 and Pre-accept Licenses
+    - name: Setup Buildozer SDK Paths and Licenses
       run: |
-        # 1. Instala explicitamente a versao 33.0.2 das build-tools e aceita todas as licencas
-        yes | sdkmanager "build-tools;33.0.2" "platforms;android-33" "platform-tools" || true
-        yes | sdkmanager --licenses || true
-
-        # 2. Prepara e injeta as chaves de licencas na pasta do Buildozer
+        # 1. Prepara a estrutura do SDK do Buildozer
         BUILDOZER_SDK="$HOME/.buildozer/android/platform/android-sdk"
+        mkdir -p "$BUILDOZER_SDK/cmdline-tools"
         mkdir -p "$BUILDOZER_SDK/licenses"
-        mkdir -p "$ANDROID_SDK_ROOT/licenses"
+        mkdir -p "$BUILDOZER_SDK/tools/bin"
 
+        # 2. Aceita licencas no SDK do sistema e copia para o Buildozer
+        yes | sdkmanager --licenses || true
         cp -r $ANDROID_SDK_ROOT/licenses/* "$BUILDOZER_SDK/licenses/" 2>/dev/null || true
 
-        # 3. Garante o link do sdkmanager antigo para o novo em ambos os caminhos
-        mkdir -p "$ANDROID_SDK_ROOT/tools/bin"
-        mkdir -p "$BUILDOZER_SDK/tools/bin"
-        ln -sf $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager "$ANDROID_SDK_ROOT/tools/bin/sdkmanager"
+        # 3. Copia/Vincula o cmdline-tools do sistema diretamente para o SDK do Buildozer
+        ln -sf $ANDROID_SDK_ROOT/cmdline-tools/latest "$BUILDOZER_SDK/cmdline-tools/latest"
         ln -sf $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager "$BUILDOZER_SDK/tools/bin/sdkmanager"
+        ln -sf $ANDROID_SDK_ROOT/platform-tools "$BUILDOZER_SDK/platform-tools"
 
     - name: Build APK
+      env:
+        ANDROIDSDK: /home/runner/.buildozer/android/platform/android-sdk
+        ANDROID_SDK_ROOT: /home/runner/.buildozer/android/platform/android-sdk
+        ANDROID_HOME: /home/runner/.buildozer/android/platform/android-sdk
       run: |
         buildozer -v android debug
 
