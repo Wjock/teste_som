@@ -28,7 +28,7 @@ jobs:
     - name: Install Dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install -y build-essential ccache git libffi-dev libssl-dev gettext zlib1g-dev zip unzip
+        sudo apt-get install -y build-essential ccache git libffi-dev libssl-dev gettext zlib1g-dev zip unzip autoconf automake libtool pkg-config
         python -m pip install --upgrade pip
         pip install buildozer cython==0.29.36
 
@@ -40,11 +40,11 @@ jobs:
         mkdir -p "$BUILDOZER_SDK/licenses"
         mkdir -p "$BUILDOZER_SDK/tools/bin"
 
-        # 2. Instala a plataforma Android 34 e aceita licencas
+        # 2. Instala a plataforma Android 34 e aceita licenças
         yes | sdkmanager "platforms;android-34" "build-tools;34.0.0" "platform-tools" || true
         yes | sdkmanager --licenses || true
 
-        # 3. Copia licencas e vincula plataformas ao Buildozer
+        # 3. Copia licenças e vincula plataformas ao Buildozer
         cp -r $ANDROID_SDK_ROOT/licenses/* "$BUILDOZER_SDK/licenses/" 2>/dev/null || true
         ln -sf $ANDROID_SDK_ROOT/cmdline-tools/latest "$BUILDOZER_SDK/cmdline-tools/latest"
         ln -sf $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager "$BUILDOZER_SDK/tools/bin/sdkmanager"
