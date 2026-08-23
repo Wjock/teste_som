@@ -26,14 +26,19 @@ jobs:
         python -m pip install --upgrade pip
         pip install "cython<3.0.0" buildozer
 
-    - name: Build APK (Com NDK isolado)
+    - name: Accept Android SDK Licenses
+      run: |
+        # Aceita todas as licencas do Android SDK diretamente sem depender de pipe no buildozer
+        mkdir -p ~/.android
+        touch ~/.android/repositories.cfg
+        yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses || true
+
+    - name: Build APK
       env:
-        # Remove a referencia do NDK 27 do GitHub para forcar o Buildozer a usar a r25b
         ANDROID_NDK_HOME: ""
         ANDROID_NDK_LATEST_HOME: ""
       run: |
-        yes | buildozer android debug || true
-        buildozer android debug
+        buildozer -v android debug
 
     - name: Upload APK
       uses: actions/upload-artifact@v4
