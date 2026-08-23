@@ -44,6 +44,7 @@ jobs:
       env:
         ANDROID_NDK_HOME: ""
         ANDROID_NDK_LATEST_HOME: ""
+        P4A_REQUIREMENTS: "python3==3.11.5,kivy==2.3.0"
       run: |
         buildozer -v android debug
 
