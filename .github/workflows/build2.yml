@@ -1,0 +1,37 @@
+name: Build Android APK (a_teste_som)
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v4
+
+    - name: Setup Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+
+    - name: Build APK with Buildozer Action
+      uses: ArtemSundaev/buildozer-action@v1
+      with:
+        command: buildozer -v android debug
+        buildozer_version: master
+
+    - name: Rename APK
+      run: |
+        mv bin/*.apk bin/a_teste_som.apk || true
+
+    - name: Upload APK Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: a_teste_som.apk
+        path: bin/a_teste_som.apk
