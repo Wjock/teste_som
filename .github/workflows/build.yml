@@ -1,9 +1,10 @@
-
-name: Build Android APK (teste_som)
+name: Build Android APK (a_teste_som)
 
 on:
   push:
-    branches: [ main ]
+    branches:
+      - main
+      - master
   workflow_dispatch:
 
 jobs:
@@ -21,17 +22,12 @@ jobs:
       env:
         BUILDOZER_WARN_ON_ROOT: "0"
       run: |
-        # Aceita licencas do SDK pre-instalado no container
         yes | sdkmanager --licenses || true
-        
-        # Executa o buildozer sem solicitar confirmacoes interativas
         yes | buildozer -v android debug
-        
-        # Garante um nome fixo e limpo para o APK
-        mv bin/*.apk bin/teste_som.apk
+        mv bin/*.apk bin/a_teste_som.apk
 
     - name: Upload APK Artifact
       uses: actions/upload-artifact@v4
       with:
-        name: teste_som.apk
-        path: bin/teste_som.apk
+        name: a_teste_som.apk
+        path: bin/a_teste_som.apk
