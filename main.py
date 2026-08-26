@@ -1,55 +1,58 @@
-name: Build Android APK (a_teste_som)
+import os
+from kivy.app import App
+from kivy.uix.floatlayout import FloatLayout
+from kivy.uix.button import Button
+from kivy.utils import platform
 
-on:
-  push:
-    branches:
-      - main
-      - master
-  workflow_dispatch:
+class TesteSomApp(App):
+    def build(self):
+        layout = FloatLayout()
+        
+        # Botão no rodapé
+        btn_tocar = Button(
+            text="Tocar Som Manual",
+            font_size='20sp',
+            size_hint=(0.8, 0.15),
+            pos_hint={'center_x': 0.5, 'y': 0.08}
+        )
+        btn_tocar.bind(on_press=self.tocar_som_manual)
+        layout.add_widget(btn_tocar)
+        
+        # Inicia o serviço em segundo plano no Android
+        if platform == 'android':
+            self.iniciar_servico_android()
+            
+        return layout
 
-jobs:
-  build:
-    runs-on: ubuntu-latest
+    def iniciar_servico_android(self):
+        try:
+            from jnius import autoclass
+            PythonActivity = autoclass('org.kivy.android.PythonActivity')
+            activity = PythonActivity.mActivity
+            
+            # Serviço registrado no buildozer.spec
+            service = autoclass('org.test.atestesom.ServiceSrvsom')
+            service.start(activity, '')
+        except Exception as e:
+            print(f"Erro ao iniciar servico: {e}")
 
-    steps:
-    - name: Checkout Repository
-      uses: actions/checkout@v5
+    def tocar_som_manual(self, instance):
+        if platform == 'android':
+            try:
+                from jnius import autoclass
+                MediaPlayer = autoclass('android.media.MediaPlayer')
+                PythonActivity = autoclass('org.kivy.android.PythonActivity')
+                
+                activity = PythonActivity.mActivity
+                app_dir = activity.getFilesDir().getAbsolutePath() + "/app/sirene.mp3"
 
-    - name: Set up Python
-      uses: actions/setup-python@v5
-      with:
-        python-version: '3.11'
+                if os.path.exists(app_dir):
+                    player = MediaPlayer()
+                    player.setDataSource(app_dir)
+                    player.prepare()
+                    player.start()
+            except Exception as e:
+                print(f"Erro ao tocar mp3 manual: {e}")
 
-    - name: Set up Java JDK
-      uses: actions/setup-java@v5
-      with:
-        distribution: 'temurin'
-        java-version: '17'
-
-    - name: Install System Dependencies
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y build-essential libsqlite3-dev sqlite3 bzip2 libbz2-dev libssl-dev libgdbm-dev libgdbm-compat-dev liblzma-dev libreadline-dev libffi-dev libncurses5-dev libncursesw5-dev libz-dev zlib1g-dev openjdk-17-jdk libtool automake autoconf pkg-config unzip curl m4 libltdl-dev
-
-    - name: Install Buildozer and Cython
-      run: |
-        pip install --upgrade pip
-        pip install "cython<3.0.0" buildozer
-
-    - name: Build APK with Buildozer
-      env:
-        BUILDOZER_WARN_ON_ROOT: "0"
-        ACLOCAL_PATH: "/usr/share/aclocal"
-      run: |
-        mkdir -p ~/.android
-        touch ~/.android/repositories.cfg
-        yes | buildozer -v android debug || true
-        buildozer -v android debug
-        mv bin/*.apk bin/a_teste_som.apk || true
-
-    - name: Upload APK Artifact
-      uses: actions/upload-artifact@v4
-      if: always()
-      with:
-        name: a_teste_som.apk
-        path: bin/a_teste_som.apk
+if __name__ == '__main__':
+    TesteSomApp().run()
