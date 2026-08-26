@@ -13,8 +13,11 @@ requirements = hostpython3==3.11.9,python3==3.11.9,kivy==2.3.0
 orientation = portrait
 fullscreen = 0
 
-# Permissões para manter CPU ativa e disparar o motor de vibração
-android.permissions = INTERNET, WAKE_LOCK, VIBRATE
+# Permissões necessárias para serviços em segundo plano
+android.permissions = INTERNET, WAKE_LOCK, VIBRATE, FOREGROUND_SERVICE
+
+# Declaração que obriga o Android a criar o processo do serviço
+services = srvsom:service.py:foreground
 
 android.api = 33
 android.minapi = 21
