@@ -1,7 +1,10 @@
 [app]
 
-title = Teste Som
-package.name = testesom
+# Titulo que aparece abaixo do icone no celular
+title = a_teste_som
+
+# Nome interno do pacote (sem underlines ou espacos)
+package.name = atestesom
 package.domain = org.test
 
 source.dir = .
@@ -13,10 +16,10 @@ requirements = hostpython3==3.11.9,python3==3.11.9,kivy==2.3.0
 orientation = portrait
 fullscreen = 0
 
-# Permissões necessárias para serviços em segundo plano
-android.permissions = INTERNET, WAKE_LOCK, VIBRATE, FOREGROUND_SERVICE
+# Permissões necessárias para serviços e notificações no Android 13+
+android.permissions = INTERNET, WAKE_LOCK, VIBRATE, FOREGROUND_SERVICE, POST_NOTIFICATIONS
 
-# Declaração que obriga o Android a criar o processo do serviço
+# Declaracao do servico em segundo plano
 services = srvsom:service.py:foreground
 
 android.api = 33

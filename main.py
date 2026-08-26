@@ -22,7 +22,7 @@ class SomApp(App):
             layout.bind(size=self._update_rect, pos=self._update_rect)
 
         self.label = Label(
-            text="Iniciando...",
+            text="a_teste_som - Aguardando Ação",
             font_size='18sp',
             color=get_color_from_hex('#FFFFFF')
         )
@@ -39,7 +39,7 @@ class SomApp(App):
         layout.add_widget(btn_tocar)
 
         if platform == 'android':
-            self.iniciar_servico()
+            self.solicitar_permissoes_e_iniciar()
 
         return layout
 
@@ -47,22 +47,36 @@ class SomApp(App):
         self.rect.pos = instance.pos
         self.rect.size = instance.size
 
+    def solicitar_permissoes_e_iniciar(self):
+        try:
+            from android.permissions import request_permissions, Permission
+            
+            # Callback para iniciar o serviço após concessão das permissões
+            def callback(permissions, results):
+                if all(results):
+                    self.iniciar_servico()
+
+            request_permissions([
+                Permission.POST_NOTIFICATIONS,
+                Permission.FOREGROUND_SERVICE,
+                Permission.WAKE_LOCK,
+                Permission.VIBRATE
+            ], callback)
+        except Exception as e:
+            print(f"Erro ao solicitar permissoes: {e}")
+            self.iniciar_servico()
+
     def iniciar_servico(self):
         try:
             from jnius import autoclass
             
-            # Obtém a Activity e o Contexto atuais do Android
             PythonActivity = autoclass('org.kivy.android.PythonActivity')
             activity = PythonActivity.mActivity
             
-            # Chama a classe Service gerada pelo Buildozer
-            service = autoclass('org.test.testesom.ServiceSrvsom')
-            
-            # Inicia o serviço passando o título e a mensagem da notificação nativa
-            service.start(activity, 'Srvsom', 'Teste Som em Execução', 'Serviço de Alarme Ativo', '')
-            self.label.text = "Serviço Iniciado com Sucesso!"
+            service = autoclass('org.test.atestesom.ServiceSrvsom')
+            service.start(activity, 'Srvsom', 'a_teste_som', 'Servico de Alarme Ativo', '')
         except Exception as e:
-            self.label.text = f"Erro ao iniciar serviço: {str(e)}"
+            print(f"Erro ao iniciar servico: {e}")
 
     def tocar_som_manual(self, instance):
         nome_arquivo = "sirene.mp3"
@@ -78,9 +92,8 @@ class SomApp(App):
                 self.player.setDataSource(caminho_absoluto)
                 self.player.prepare()
                 self.player.start()
-                self.label.text = "Som manual disparado!"
             except Exception as e:
-                self.label.text = f"Erro no som manual: {str(e)}"
+                print(f"Erro no som manual: {e}")
 
 if __name__ == '__main__':
     SomApp().run()
