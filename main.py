@@ -1,59 +1,106 @@
 import os
+from datetime import datetime
 from kivy.app import App
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.button import Button
 from kivy.uix.label import Label
 from kivy.graphics import Color, Rectangle
-from kivy.utils import get_color_from_hex
-from kivy.utils import platform
+from kivy.utils import get_color_from_hex, platform
+from kivy.clock import Clock
 
 class SomApp(App):
     def build(self):
         self.player = None
+        self.contador = 0
         
-        # Layout principal
+        # Caminho do log na pasta de dados do app
+        self.log_path = os.path.join(self.user_data_dir, 'suspensao_log.txt')
+        
         layout = BoxLayout(
             orientation='vertical',
-            spacing=20,
-            padding=30
+            spacing=15,
+            padding=20
         )
         
-        # Fundo do layout usando Hexadecimal
         with layout.canvas.before:
             Color(*get_color_from_hex('#1A1A24'))
             self.rect = Rectangle(size=layout.size, pos=layout.pos)
             layout.bind(size=self._update_rect, pos=self._update_rect)
 
-        # Rótulo de status do som
-        self.label = Label(
-            text="Pronto para tocar",
-            font_size='20sp',
-            color=get_color_from_hex('#FFFFFF')
+        self.label_status = Label(
+            text="App Ativo - Teste de Suspensão",
+            font_size='18sp',
+            color=get_color_from_hex('#00E676')
         )
         
-        # Botão para reproduzir o som
+        self.label_logs = Label(
+            text="Aguardando registros...",
+            font_size='12sp',
+            color=get_color_from_hex('#FFFFFF'),
+            halign='left',
+            valign='top'
+        )
+        self.label_logs.bind(size=self.label_logs.setter('text_size'))
+
         btn_tocar = Button(
-            text="Tocar Som",
-            font_size='22sp',
-            size_hint=(1, 0.3),
+            text="Tocar Som Manual",
+            font_size='18sp',
+            size_hint=(1, 0.15),
             background_color=get_color_from_hex('#00E676')
         )
         btn_tocar.bind(on_release=self.tocar_som)
 
-        layout.add_widget(self.label)
+        btn_refresh = Button(
+            text="Atualizar Logs",
+            font_size='16sp',
+            size_hint=(1, 0.15),
+            background_color=get_color_from_hex('#29B6F6')
+        )
+        btn_refresh.bind(on_release=self.ler_logs)
+
+        layout.add_widget(self.label_status)
+        layout.add_widget(self.label_logs)
         layout.add_widget(btn_tocar)
+        layout.add_widget(btn_refresh)
+
+        # Inicia a checagem em segundo plano a cada 10 segundos
+        Clock.schedule_interval(self.rotina_segundo_plano, 10)
+
         return layout
 
     def _update_rect(self, instance, value):
         self.rect.pos = instance.pos
         self.rect.size = instance.size
 
+    def gravar_log(self, mensagem):
+        horario = datetime.now().strftime("%H:%M:%S")
+        linha = f"[{horario}] {mensagem}\n"
+        with open(self.log_path, 'a') as f:
+            f.write(linha)
+
+    def rotina_segundo_plano(self, dt):
+        self.contador += 1
+        self.gravar_log(f"Checagem #{self.contador}")
+        
+        # Na 3ª checagem (~30 seg), dispara o som automaticamente
+        if self.contador == 3:
+            self.gravar_log("Tentando tocar som automático...")
+            self.tocar_som(None)
+            
+        self.ler_logs()
+
+    def ler_logs(self, *args):
+        if os.path.exists(self.log_path):
+            with open(self.log_path, 'r') as f:
+                linhas = f.readlines()[-8:] # Pega as ultimas 8 linhas
+                self.label_logs.text = "".join(linhas)
+
     def tocar_som(self, instance):
-        nome_arquivo = "sirene.mp3"  # Certifique-se que o arquivo existe na raiz
+        nome_arquivo = "sirene.mp3"
         caminho_absoluto = os.path.abspath(nome_arquivo)
 
         if not os.path.exists(caminho_absoluto):
-            self.label.text = f"Erro: {nome_arquivo} nao encontrado!"
+            self.label_status.text = f"Erro: {nome_arquivo} nao encontrado!"
             return
 
         if platform == 'android':
@@ -68,21 +115,9 @@ class SomApp(App):
                 self.player.setDataSource(caminho_absoluto)
                 self.player.prepare()
                 self.player.start()
-                self.label.text = "Som tocando no Android!"
+                self.label_status.text = "Som disparado!"
             except Exception as e:
-                self.label.text = f"Erro Android: {str(e)}"
-        else:
-            # Fallback para execução de teste no PC
-            try:
-                from kivy.core.audio import SoundLoader
-                sound = SoundLoader.load(caminho_absoluto)
-                if sound:
-                    sound.play()
-                    self.label.text = "Som tocando no Desktop!"
-                else:
-                    self.label.text = "Falha ao carregar audio no PC"
-            except Exception as e:
-                self.label.text = f"Erro PC: {str(e)}"
+                self.label_status.text = f"Erro Android: {str(e)}"
 
 if __name__ == '__main__':
     SomApp().run()
