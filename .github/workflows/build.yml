@@ -45,7 +45,6 @@ jobs:
       env:
         BUILDOZER_WARN_ON_ROOT: "0"
       run: |
-        # Aceita licenças automaticamente em lote
         yes | buildozer -v android debug || true
         buildozer -v android debug
         mv bin/*.apk bin/a_teste_som.apk || true
