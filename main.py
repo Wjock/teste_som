@@ -50,11 +50,17 @@ class SomApp(App):
     def iniciar_servico(self):
         try:
             from jnius import autoclass
-            PythonService = autoclass('org.kivy.android.PythonService')
-            # Classe do serviço criada pelo Buildozer (org.test.testesom.ServiceSrvsom)
+            
+            # Obtém a Activity e o Contexto atuais do Android
+            PythonActivity = autoclass('org.kivy.android.PythonActivity')
+            activity = PythonActivity.mActivity
+            
+            # Chama a classe Service gerada pelo Buildozer
             service = autoclass('org.test.testesom.ServiceSrvsom')
-            service.start(PythonService.mContext, '')
-            self.label.text = "Serviço ativo! Pode apagar a tela."
+            
+            # Inicia o serviço passando o título e a mensagem da notificação nativa
+            service.start(activity, 'Srvsom', 'Teste Som em Execução', 'Serviço de Alarme Ativo', '')
+            self.label.text = "Serviço Iniciado com Sucesso!"
         except Exception as e:
             self.label.text = f"Erro ao iniciar serviço: {str(e)}"
 
@@ -74,7 +80,7 @@ class SomApp(App):
                 self.player.start()
                 self.label.text = "Som manual disparado!"
             except Exception as e:
-                self.label.text = f"Erro: {str(e)}"
+                self.label.text = f"Erro no som manual: {str(e)}"
 
 if __name__ == '__main__':
     SomApp().run()

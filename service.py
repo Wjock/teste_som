@@ -2,7 +2,6 @@ import os
 import time
 from jnius import autoclass
 
-# Mantém a CPU ativa durante a suspensão
 def adquirir_wake_lock():
     try:
         PythonService = autoclass('org.kivy.android.PythonService')
@@ -14,7 +13,7 @@ def adquirir_wake_lock():
         wake_lock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "TesteSom:ServiceLock")
         wake_lock.acquire()
     except Exception as e:
-        print(f"Erro WakeLock Service: {e}")
+        print(f"Erro WakeLock no Service: {e}")
 
 def tocar_e_vibrar():
     try:
@@ -22,12 +21,12 @@ def tocar_e_vibrar():
         Context = autoclass('android.content.Context')
         service = PythonService.mContext
 
-        # 1. Vibrar
+        # 1. Vibrar por 1 segundo
         vibrator = service.getSystemService(Context.VIBRATOR_SERVICE)
         if vibrator and vibrator.hasVibrator():
             vibrator.vibrate(1000)
 
-        # 2. Tocar Áudio Nativo
+        # 2. Tocar Áudio via MediaPlayer
         caminho_audio = os.path.abspath("sirene.mp3")
         MediaPlayer = autoclass('android.media.MediaPlayer')
         player = MediaPlayer()
@@ -39,9 +38,7 @@ def tocar_e_vibrar():
 
 adquirir_wake_lock()
 
-# Loop contínuo que roda com a tela apagada
-contador = 0
+# Loop contínuo a cada 20 segundos
 while True:
-    time.sleep(20) # Executa a cada 20 segundos
-    contador += 1
+    time.sleep(20)
     tocar_e_vibrar()
