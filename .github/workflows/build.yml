@@ -34,11 +34,12 @@ jobs:
       env:
         BUILDOZER_WARN_ON_ROOT: "0"
       run: |
-        yes | buildozer -v android debug
+        buildozer -v android debug
         mv bin/*.apk bin/a_teste_som.apk || true
 
     - name: Upload APK Artifact
       uses: actions/upload-artifact@v4
+      if: always()
       with:
         name: a_teste_som.apk
         path: bin/a_teste_som.apk
