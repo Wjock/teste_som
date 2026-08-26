@@ -23,24 +23,33 @@ jobs:
     - name: Install System Dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install -y build-essential libsqlite3-dev sqlite3 bzip2 libbz2-dev libssl-dev libgdbm-dev libgdbm-compat-dev liblzma-dev libreadline-dev libffi-dev libncurses5-dev libncursesw5-dev libz-dev zlib1g-dev openjdk-17-jdk libtool automake autoconf pkg-config
+        sudo apt-get install -y build-essential libsqlite3-dev sqlite3 bzip2 libbz2-dev libssl-dev libgdbm-dev libgdbm-compat-dev liblzma-dev libreadline-dev libffi-dev libncurses5-dev libncursesw5-dev libz-dev zlib1g-dev openjdk-17-jdk libtool automake autoconf pkg-config unzip
 
     - name: Install Buildozer and Cython
       run: |
         pip install --upgrade pip
         pip install "cython<3.0.0" buildozer
 
-    - name: Pre-accept Android SDK Licenses
+    - name: Setup Android SDK and Licenses
       run: |
         mkdir -p ~/.android
         touch ~/.android/repositories.cfg
         
-        # Prepara pastas de licencas do Buildozer e do Android SDK
+        # Baixa e estrutura o Android Command Line Tools (sdkmanager)
+        mkdir -p ~/.buildozer/android/platform/android-sdk/cmdline-tools
+        cd ~/.buildozer/android/platform/android-sdk/cmdline-tools
+        curl -s -o commandlinetools.zip https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip
+        unzip -q commandlinetools.zip
+        mv cmdline-tools latest || true
+        rm -f commandlinetools.zip
+
+        # Pre-grava licenças do SDK do Android
         mkdir -p ~/.buildozer/android/platform/android-sdk/licenses
-        
-        # Grava os hashes de aceitacao padrão das licencas do Android SDK
         echo -e "\n89330d170915b118b839232a8359e191d374e2d3\n45444628a296086d39733c923436e56315206205\n24333f8a637b37ea1d55c4d30f13dd7f80ce26a2" > ~/.buildozer/android/platform/android-sdk/licenses/android-sdk-license
         echo -e "\n84831b9409646a918e30573bab4c9c91346d8abd" > ~/.buildozer/android/platform/android-sdk/licenses/android-sdk-preview-license
+
+        # Aceita licenças via sdkmanager
+        yes | ~/.buildozer/android/platform/android-sdk/cmdline-tools/latest/bin/sdkmanager --licenses || true
 
     - name: Build APK with Buildozer
       env:
