@@ -23,19 +23,19 @@ jobs:
     - name: Install System Dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install -y build-essential libsqlite3-dev sqlite3 bzip2 libbz2-dev libssl-dev libgdbm-dev libgdbm-compat-dev liblzma-dev libreadline-dev libffi-dev libncurses5-dev libncursesw5-dev libz-dev zlib1g-dev openjdk-17-jdk libtool automake autoconf pkg-config unzip
+        sudo apt-get install -y build-essential libsqlite3-dev sqlite3 bzip2 libbz2-dev libssl-dev libgdbm-dev libgdbm-compat-dev liblzma-dev libreadline-dev libffi-dev libncurses5-dev libncursesw5-dev libz-dev zlib1g-dev openjdk-17-jdk libtool automake autoconf pkg-config unzip curl
 
     - name: Install Buildozer and Cython
       run: |
         pip install --upgrade pip
         pip install "cython<3.0.0" buildozer
 
-    - name: Setup Android SDK and Licenses
+    - name: Setup Android SDK, Tools and Licenses
       run: |
         mkdir -p ~/.android
         touch ~/.android/repositories.cfg
-        
-        # Baixa e estrutura o Android Command Line Tools (sdkmanager)
+
+        # Baixa e extrai Command Line Tools
         mkdir -p ~/.buildozer/android/platform/android-sdk/cmdline-tools
         cd ~/.buildozer/android/platform/android-sdk/cmdline-tools
         curl -s -o commandlinetools.zip https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip
@@ -43,13 +43,17 @@ jobs:
         mv cmdline-tools latest || true
         rm -f commandlinetools.zip
 
-        # Pre-grava licenças do SDK do Android
+        # Cria a estrutura legada tools/bin apontando para o sdkmanager
+        mkdir -p ~/.buildozer/android/platform/android-sdk/tools
+        cp -r ~/.buildozer/android/platform/android-sdk/cmdline-tools/latest/* ~/.buildozer/android/platform/android-sdk/tools/ || true
+
+        # Pre-grava licencas do Android SDK
         mkdir -p ~/.buildozer/android/platform/android-sdk/licenses
         echo -e "\n89330d170915b118b839232a8359e191d374e2d3\n45444628a296086d39733c923436e56315206205\n24333f8a637b37ea1d55c4d30f13dd7f80ce26a2" > ~/.buildozer/android/platform/android-sdk/licenses/android-sdk-license
         echo -e "\n84831b9409646a918e30573bab4c9c91346d8abd" > ~/.buildozer/android/platform/android-sdk/licenses/android-sdk-preview-license
 
-        # Aceita licenças via sdkmanager
-        yes | ~/.buildozer/android/platform/android-sdk/cmdline-tools/latest/bin/sdkmanager --licenses || true
+        # Aceita licencas explicitamente
+        yes | ~/.buildozer/android/platform/android-sdk/tools/bin/sdkmanager --licenses || true
 
     - name: Build APK with Buildozer
       env:
