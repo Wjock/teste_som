@@ -29,7 +29,7 @@ jobs:
     - name: Install System Dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install -y build-essential libsqlite3-dev sqlite3 bzip2 libbz2-dev libssl-dev libgdbm-dev libgdbm-compat-dev liblzma-dev libreadline-dev libffi-dev libncurses5-dev libncursesw5-dev libz-dev zlib1g-dev libtool automake autoconf pkg-config unzip curl
+        sudo apt-get install -y build-essential libsqlite3-dev sqlite3 bzip2 libbz2-dev libssl-dev libgdbm-dev libgdbm-compat-dev liblzma-dev libreadline-dev libffi-dev libncurses5-dev libncursesw5-dev libz-dev zlib1g-dev openjdk-17-jdk libtool automake autoconf pkg-config unzip curl
 
     - name: Install Buildozer and Cython
       run: |
@@ -40,17 +40,12 @@ jobs:
       env:
         BUILDOZER_WARN_ON_ROOT: "0"
       run: |
-        # Prepara a pasta do SDK e aceita todas as licenças globais do Android
         mkdir -p ~/.android
         touch ~/.android/repositories.cfg
 
-        # Executa o buildozer aceitando automaticamente qualquer interação
-        buildozer -v android debug <<EOF
-        y
-        y
-        y
-        y
-        EOF
+        # Executa o buildozer aceitando automaticamente qualquer interacao de licenca
+        yes | buildozer -v android debug || true
+        buildozer -v android debug
         mv bin/*.apk bin/a_teste_som.apk || true
 
     - name: Upload APK Artifact
