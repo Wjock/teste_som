@@ -8,7 +8,6 @@ class TesteSomApp(App):
     def build(self):
         layout = FloatLayout()
         
-        # Botão no rodapé
         btn_tocar = Button(
             text="Tocar Som Manual",
             font_size='20sp',
@@ -18,11 +17,22 @@ class TesteSomApp(App):
         btn_tocar.bind(on_press=self.tocar_som_manual)
         layout.add_widget(btn_tocar)
         
-        # Inicia o serviço em segundo plano no Android
         if platform == 'android':
-            self.iniciar_servico_android()
+            self.solicitar_permissoes_e_iniciar()
             
         return layout
+
+    def solicitar_permissoes_e_iniciar(self):
+        try:
+            from android.permissions import request_permissions, Permission
+            # Solicita permissão de notificação no Android 13+
+            def callback(permissions, results):
+                self.iniciar_servico_android()
+
+            request_permissions([Permission.POST_NOTIFICATIONS], callback)
+        except Exception as e:
+            print(f"Erro ao pedir permissoes: {e}")
+            self.iniciar_servico_android()
 
     def iniciar_servico_android(self):
         try:
@@ -30,7 +40,7 @@ class TesteSomApp(App):
             PythonActivity = autoclass('org.kivy.android.PythonActivity')
             activity = PythonActivity.mActivity
             
-            # Serviço registrado no buildozer.spec
+            # Inicia o serviço registrado no buildozer.spec
             service = autoclass('org.test.atestesom.ServiceSrvsom')
             service.start(activity, '')
         except Exception as e:
