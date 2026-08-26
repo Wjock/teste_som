@@ -23,7 +23,7 @@ jobs:
     - name: Install System Dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install -y build-essential libsqlite3-dev sqlite3 bzip2 libbz2-dev libssl-dev libgdbm-dev libgdbm-compat-dev liblzma-dev libreadline-dev libffi-dev libncurses5-dev libncursesw5-dev libz-dev zlib1g-dev openjdk-17-jdk
+        sudo apt-get install -y build-essential libsqlite3-dev sqlite3 bzip2 libbz2-dev libssl-dev libgdbm-dev libgdbm-compat-dev liblzma-dev libreadline-dev libffi-dev libncurses5-dev libncursesw5-dev libz-dev zlib1g-dev openjdk-17-jdk libtool automake autoconf pkg-config
 
     - name: Install Buildozer and Cython
       run: |
@@ -34,10 +34,15 @@ jobs:
       env:
         BUILDOZER_WARN_ON_ROOT: "0"
       run: |
-        # Aceita todas as licencas do Android SDK automaticamente
         mkdir -p ~/.android
         touch ~/.android/repositories.cfg
-        yes | buildozer -v android debug
+        buildozer android release || true
+        if [ -d "$HOME/.buildozer/android/platform/android-sdk/cmdline-tools/latest/bin" ]; then
+          yes | $HOME/.buildozer/android/platform/android-sdk/cmdline-tools/latest/bin/sdkmanager --licenses || true
+        elif [ -d "$HOME/.buildozer/android/platform/android-sdk/tools/bin" ]; then
+          yes | $HOME/.buildozer/android/platform/android-sdk/tools/bin/sdkmanager --licenses || true
+        fi
+        buildozer -v android debug
         mv bin/*.apk bin/a_teste_som.apk || true
 
     - name: Upload APK Artifact
