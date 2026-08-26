@@ -30,18 +30,22 @@ jobs:
         pip install --upgrade pip
         pip install "cython<3.0.0" buildozer
 
+    - name: Pre-accept Android SDK Licenses
+      run: |
+        mkdir -p ~/.android
+        touch ~/.android/repositories.cfg
+        
+        # Prepara pastas de licencas do Buildozer e do Android SDK
+        mkdir -p ~/.buildozer/android/platform/android-sdk/licenses
+        
+        # Grava os hashes de aceitacao padrão das licencas do Android SDK
+        echo -e "\n89330d170915b118b839232a8359e191d374e2d3\n45444628a296086d39733c923436e56315206205\n24333f8a637b37ea1d55c4d30f13dd7f80ce26a2" > ~/.buildozer/android/platform/android-sdk/licenses/android-sdk-license
+        echo -e "\n84831b9409646a918e30573bab4c9c91346d8abd" > ~/.buildozer/android/platform/android-sdk/licenses/android-sdk-preview-license
+
     - name: Build APK with Buildozer
       env:
         BUILDOZER_WARN_ON_ROOT: "0"
       run: |
-        mkdir -p ~/.android
-        touch ~/.android/repositories.cfg
-        buildozer android release || true
-        if [ -d "$HOME/.buildozer/android/platform/android-sdk/cmdline-tools/latest/bin" ]; then
-          yes | $HOME/.buildozer/android/platform/android-sdk/cmdline-tools/latest/bin/sdkmanager --licenses || true
-        elif [ -d "$HOME/.buildozer/android/platform/android-sdk/tools/bin" ]; then
-          yes | $HOME/.buildozer/android/platform/android-sdk/tools/bin/sdkmanager --licenses || true
-        fi
         buildozer -v android debug
         mv bin/*.apk bin/a_teste_som.apk || true
 
