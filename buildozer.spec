@@ -17,7 +17,8 @@ orientation = portrait
 fullscreen = 0
 
 # Permissões necessárias para serviços e notificações no Android 13+
-android.permissions = INTERNET, WAKE_LOCK, VIBRATE, FOREGROUND_SERVICE, POST_NOTIFICATIONS
+#android.permissions = INTERNET, WAKE_LOCK, VIBRATE, FOREGROUND_SERVICE, POST_NOTIFICATIONS
+android.permissions = WAKE_LOCK, FOREGROUND_SERVICE, FOREGROUND_SERVICE_MEDIA_PLAYBACK
 
 # Declaracao do servico em segundo plano
 services = srvsom:service.py:foreground
