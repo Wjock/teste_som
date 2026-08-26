@@ -1,40 +1,55 @@
-from kivy.app import App
-from kivy.uix.boxlayout import BoxLayout
-from kivy.uix.button import Button
-from kivy.core.audio import SoundLoader
-from kivy.clock import Clock
+name: Build Android APK (a_teste_som)
 
-class TesteSomApp(App):
-    def build(self):
-        # Layout limpo sem textos explicativos
-        layout = BoxLayout(orientation='vertical', padding=30, spacing=20)
-        
-        # Botão único central
-        btn_tocar = Button(
-            text="Tocar Som Manual",
-            font_size='20sp',
-            size_hint=(1, 0.3)
-        )
-        btn_tocar.bind(on_press=self.tocar_som_manual)
-        
-        layout.add_widget(btn_tocar)
-        
-        # Inicia o loop de 5 segundos
-        Clock.schedule_interval(self.loop_suspensao, 5)
-        
-        return layout
+on:
+  push:
+    branches:
+      - main
+      - master
+  workflow_dispatch:
 
-    def tocar_som_manual(self, instance):
-        self.reproduzir_sirene()
+jobs:
+  build:
+    runs-on: ubuntu-latest
 
-    def loop_suspensao(self, dt):
-        self.reproduzir_sirene()
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v5
 
-    def reproduzir_sirene(self):
-        # Carrega e toca o áudio alarme.wav (ou alarme.mp3)
-        sound = SoundLoader.load('alarme.wav')
-        if sound:
-            sound.play()
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
 
-if __name__ == '__main__':
-    TesteSomApp().run()
+    - name: Set up Java JDK
+      uses: actions/setup-java@v5
+      with:
+        distribution: 'temurin'
+        java-version: '17'
+
+    - name: Install System Dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y build-essential libsqlite3-dev sqlite3 bzip2 libbz2-dev libssl-dev libgdbm-dev libgdbm-compat-dev liblzma-dev libreadline-dev libffi-dev libncurses5-dev libncursesw5-dev libz-dev zlib1g-dev openjdk-17-jdk libtool automake autoconf pkg-config unzip curl m4 libltdl-dev
+
+    - name: Install Buildozer and Cython
+      run: |
+        pip install --upgrade pip
+        pip install "cython<3.0.0" buildozer
+
+    - name: Build APK with Buildozer
+      env:
+        BUILDOZER_WARN_ON_ROOT: "0"
+        ACLOCAL_PATH: "/usr/share/aclocal"
+      run: |
+        mkdir -p ~/.android
+        touch ~/.android/repositories.cfg
+        yes | buildozer -v android debug || true
+        buildozer -v android debug
+        mv bin/*.apk bin/a_teste_som.apk || true
+
+    - name: Upload APK Artifact
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: a_teste_som.apk
+        path: bin/a_teste_som.apk

@@ -1,26 +1,21 @@
 [app]
 
-# Titulo que aparece abaixo do icone no celular
 title = a_teste_som
-
-# Nome interno do pacote (sem underlines ou espacos)
 package.name = atestesom
 package.domain = org.test
 
 source.dir = .
-source.include_exts = py,png,jpg,kv,atlas,ogg,wav,mp3
-
+source.include_exts = py,png,jpg,kv,locale,mp3
 version = 0.1
-requirements = python3,kivy
+requirements = python3,kivy,pyjnius
 
 orientation = portrait
 fullscreen = 0
 
-# Permissões necessárias para serviços e notificações no Android 13+
-#android.permissions = INTERNET, WAKE_LOCK, VIBRATE, FOREGROUND_SERVICE, POST_NOTIFICATIONS
-android.permissions = WAKE_LOCK, FOREGROUND_SERVICE, FOREGROUND_SERVICE_MEDIA_PLAYBACK
+# Permissões necessárias para WakeLock, Notificações e Foreground Service
+android.permissions = WAKE_LOCK, VIBRATE, FOREGROUND_SERVICE, FOREGROUND_SERVICE_MEDIA_PLAYBACK, POST_NOTIFICATIONS
 
-# Declaracao do servico em segundo plano
+# Declaração do serviço em segundo plano
 services = srvsom:service.py:foreground
 
 android.api = 33

@@ -10,35 +10,34 @@ def adquirir_wake_lock():
         
         service = PythonService.mContext
         pm = service.getSystemService(Context.POWER_SERVICE)
-        wake_lock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "TesteSom:ServiceLock")
+        wake_lock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "a_teste_som:WakeLock")
         wake_lock.acquire()
+        return wake_lock
     except Exception as e:
         print(f"Erro WakeLock no Service: {e}")
+        return None
 
-def tocar_e_vibrar():
+def tocar_som():
     try:
         PythonService = autoclass('org.kivy.android.PythonService')
-        Context = autoclass('android.content.Context')
         service = PythonService.mContext
-
-        # 1. Vibrar por 1 segundo
-        vibrator = service.getSystemService(Context.VIBRATOR_SERVICE)
-        if vibrator and vibrator.hasVibrator():
-            vibrator.vibrate(1000)
-
-        # 2. Tocar Áudio via MediaPlayer
-        caminho_audio = os.path.abspath("sirene.mp3")
-        MediaPlayer = autoclass('android.media.MediaPlayer')
-        player = MediaPlayer()
-        player.setDataSource(caminho_audio)
-        player.prepare()
-        player.start()
+        
+        # Caminho para o sirene.mp3 empacotado no app
+        app_dir = service.getFilesDir().getAbsolutePath() + "/app/sirene.mp3"
+        
+        if os.path.exists(app_dir):
+            MediaPlayer = autoclass('android.media.MediaPlayer')
+            player = MediaPlayer()
+            player.setDataSource(app_dir)
+            player.prepare()
+            player.start()
     except Exception as e:
-        print(f"Erro ao tocar/vibrar no Service: {e}")
+        print(f"Erro ao tocar no Service: {e}")
 
-adquirir_wake_lock()
+# Mantém a CPU ativa
+lock = adquirir_wake_lock()
 
-# Loop contínuo a cada 20 segundos
+# Loop contínuo a cada 5 segundos
 while True:
-    time.sleep(20)
-    tocar_e_vibrar()
+    tocar_som()
+    time.sleep(5)
