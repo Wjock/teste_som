@@ -13,17 +13,17 @@ def iniciar_foreground():
         service = PythonService.mContext
         nm = service.getSystemService(Context.NOTIFICATION_SERVICE)
         
-        CHANNEL_ID = "canal_alarm_manager_v1"
+        CHANNEL_ID = "canal_srvsom_v10"
         channel = NotificationChannel(
             CHANNEL_ID,
-            "Alarme de Emergência Nativo",
+            "Alarme de Emergencia Srvsom",
             NotificationManager.IMPORTANCE_HIGH
         )
         nm.createNotificationChannel(channel)
         
         builder = NotificationBuilder(service, CHANNEL_ID)
         builder.setContentTitle("a_teste_som")
-        builder.setContentText("AlarmManager Ativo em Segundo Plano")
+        builder.setContentText("Serviço de Alarme Nativo Rodando")
         builder.setSmallIcon(service.getApplicationInfo().icon)
         builder.setOngoing(True)
         
@@ -31,19 +31,18 @@ def iniciar_foreground():
     except Exception as e:
         print(f"Erro no Foreground: {e}")
 
-def disparar_som_e_vibracao_nativo():
-    """Acorda o hardware via acendimento de tela, toca e vibra."""
+def disparar_hardware_nativo():
+    """Acorda a CPU e o Display, vibra e toca a sirene."""
     try:
         PythonService = autoclass('org.kivy.android.PythonService')
         Context = autoclass('android.content.Context')
         service = PythonService.mContext
 
-        # 1. Acorda o Display
+        # 1. Acorda o Display (Comando Acorda Nativo)
         try:
             PowerManager = autoclass('android.os.PowerManager')
             pm = service.getSystemService(Context.POWER_SERVICE)
-            # 26 = SCREEN_BRIGHT_WAKE_LOCK | 1 = ACQUIRE_CAUSES_WAKEUP | 10 = ON_AFTER_RELEASE
-            wake_lock = pm.newWakeLock(26 | 1 | 10, "a_teste_som:AlarmManagerWake")
+            wake_lock = pm.newWakeLock(26 | 1 | 10, "a_teste_som:AlarmWake")
             wake_lock.acquire(1500)
         except Exception as e_w:
             print(f"Erro Wake: {e_w}")
@@ -79,38 +78,14 @@ def disparar_som_e_vibracao_nativo():
     except Exception as e:
         print(f"Erro no disparo de hardware: {e}")
 
-def agendar_proxima_execucao():
-    """Utiliza a API AlarmManager para instruir o Kernel do Android a disparar em 5 segundos."""
-    try:
-        PythonService = autoclass('org.kivy.android.PythonService')
-        Context = autoclass('android.content.Context')
-        Intent = autoclass('android.content.Intent')
-        PendingIntent = autoclass('android.app.PendingIntent')
-        System = autoclass('java.lang.System')
-        
-        service = PythonService.mContext
-        alarm_manager = service.getSystemService(Context.ALARM_SERVICE)
-        
-        # Intent apontando para o próprio serviço
-        intent = Intent(service, service.getClass())
-        # FLAG_UPDATE_CURRENT (134217728) | FLAG_IMMUTABLE (67108864)
-        pending_intent = PendingIntent.getService(service, 0, intent, 134217728 | 67108864)
-        
-        # Tempo atual + 5000ms (5 segundos)
-        trigger_at_millis = System.currentTimeMillis() + 5000
-        
-        # setExactAndAllowWhileIdle = Garante o disparo MESMO em suspensão profunda (Doze Mode)
-        # RTC_WAKEUP = 0 (Acorda a CPU se estiver dormindo)
-        alarm_manager.setExactAndAllowWhileIdle(0, trigger_at_millis, pending_intent)
-        print("Próximo alarme agendado no AlarmManager nativo com sucesso!")
-    except Exception as e:
-        print(f"Erro ao agendar AlarmManager: {e}")
-
-# 1. Inicia o serviço de primeiro plano
+# 1. Inicia o serviço
 iniciar_foreground()
 
-# 2. Executa o pulso atual de som e vibração
-disparar_som_e_vibracao_nativo()
-
-# 3. Agenda a próxima execução no Kernel e encerra o ciclo da CPU
-agendar_proxima_execucao()
+# 2. Loop continuo de disparo
+while True:
+    try:
+        disparar_hardware_nativo()
+    except Exception as e_loop:
+        print(f"Erro loop: {e_loop}")
+        
+    time.sleep(5)

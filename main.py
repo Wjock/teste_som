@@ -9,12 +9,13 @@ class TesteSomApp(App):
     def build(self):
         layout = FloatLayout()
         
+        # Fundo Grafite
         with layout.canvas.before:
             Color(0.12, 0.12, 0.12, 1)
             self.rect = Rectangle(size=(2000, 2000), pos=(0, 0))
             
         lbl_titulo = Label(
-            text="a_teste_som (AlarmManager)",
+            text="a_teste_som",
             font_size='22sp',
             bold=True,
             pos_hint={'center_x': 0.5, 'y': 0.38}
@@ -22,7 +23,7 @@ class TesteSomApp(App):
         layout.add_widget(lbl_titulo)
         
         self.lbl_status = Label(
-            text="Status: Ativando AlarmManager Nativo...",
+            text="Status: Aguardando ativacao...",
             font_size='16sp',
             color=(0.8, 0.8, 0.8, 1),
             pos_hint={'center_x': 0.5, 'y': 0.28}
@@ -57,10 +58,10 @@ class TesteSomApp(App):
             service_class = autoclass(f'{package_name}.Service{service_name}')
             service_class.start(mActivity, '')
             
-            self.lbl_status.text = "Status: AlarmManager Agendado no Kernel!"
+            self.lbl_status.text = "Status: Serviço Iniciado com Sucesso!"
             self.lbl_status.color = (0.2, 0.8, 0.2, 1)
         except Exception as e:
-            self.lbl_status.text = f"Erro ao iniciar: {e}"
+            self.lbl_status.text = f"Erro no app: {e}"
             self.lbl_status.color = (0.9, 0.2, 0.2, 1)
 
     def iniciar_servico_manual(self, instance):
