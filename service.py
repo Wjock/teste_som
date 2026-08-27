@@ -47,6 +47,19 @@ def adquirir_wake_lock():
         print(f"Erro WakeLock no Service: {e}")
         return None
 
+def vibrar_dispositivo(duracao_ms=500):
+    """Aciona diretamente o motor de vibração do hardware do celular."""
+    try:
+        PythonService = autoclass('org.kivy.android.PythonService')
+        Context = autoclass('android.content.Context')
+        service = PythonService.mContext
+        
+        vibrator = service.getSystemService(Context.VIBRATOR_SERVICE)
+        if vibrator and vibrator.hasVibrator():
+            vibrator.vibrate(duracao_ms)
+    except Exception as e:
+        print(f"Erro ao vibrar: {e}")
+
 def tocar_som():
     try:
         PythonService = autoclass('org.kivy.android.PythonService')
@@ -58,20 +71,15 @@ def tocar_som():
         
         service = PythonService.mContext
         
-        # 1. Requisita o Foco de Áudio do sistema (Essencial para tocar com tela apagada)
         audio_manager = service.getSystemService(Context.AUDIO_SERVICE)
-        # 3 representa STREAM_MUSIC / USAGE_ALARM
         audio_manager.requestAudioFocus(None, AudioManager.STREAM_ALARM, AudioManager.AUDIOFOCUS_GAIN_TRANSIENT_MAY_DUCK)
         
         app_dir = service.getFilesDir().getAbsolutePath() + "/app/sirene.mp3"
         
         if os.path.exists(app_dir):
             player = MediaPlayer()
-            
-            # Mantém a CPU ativa durante a reprodução
             player.setWakeMode(service, PowerManager.PARTIAL_WAKE_LOCK)
             
-            # Configura atributos de Alarme
             attr_builder = autoclass('android.media.AudioAttributes$Builder')()
             attr_builder.setUsage(AudioAttributes.USAGE_ALARM)
             attr_builder.setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
@@ -83,13 +91,14 @@ def tocar_som():
     except Exception as e:
         print(f"Erro ao tocar no Service: {e}")
 
-# 1. Ativa a notificação do Srvsom
+# 1. Ativa a notificação fixa (Srvsom)
 iniciar_foreground_notification()
 
 # 2. Segura a CPU
 lock = adquirir_wake_lock()
 
-# 3. Loop do alarme a cada 5 segundos
+# 3. Loop do alarme (Vibração + Som) a cada 5 segundos
 while True:
-    tocar_som()
+    vibrar_dispositivo(500)  # Vibra por meio segundo
+    tocar_som()             # Toca a sirene
     time.sleep(5)
