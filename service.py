@@ -3,7 +3,7 @@ import time
 from jnius import autoclass
 
 def iniciar_foreground_notification():
-    """Exibe o ícone fixo na barra para o Android não congelar o app ao apagar a tela."""
+    """Mantém a notificação ativa no painel do Android."""
     try:
         PythonService = autoclass('org.kivy.android.PythonService')
         service = PythonService.mContext
@@ -25,54 +25,47 @@ def iniciar_foreground_notification():
         
         builder = NotificationBuilder(service, CHANNEL_ID)
         builder.setContentTitle("a_teste_som")
-        builder.setContentText("Serviço em segundo plano em execução")
+        builder.setContentText("Alarme em segundo plano ativo")
         builder.setSmallIcon(service.getApplicationInfo().icon)
         
         notification = builder.build()
-        
-        # Coloca o serviço em Foreground (Notificação ativa)
         service.startForeground(101, notification)
     except Exception as e:
         print(f"Erro ao iniciar Foreground Notification: {e}")
 
-def adquirir_wake_lock():
+def tocar_som_com_wakelock():
+    """Configura o som como ALARME para disparar na tela bloqueada."""
     try:
         PythonService = autoclass('org.kivy.android.PythonService')
         Context = autoclass('android.content.Context')
         PowerManager = autoclass('android.os.PowerManager')
+        MediaPlayer = autoclass('android.media.MediaPlayer')
+        AudioAttributes = autoclass('android.media.AudioAttributes')
         
         service = PythonService.mContext
-        pm = service.getSystemService(Context.POWER_SERVICE)
-        wake_lock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "a_teste_som:WakeLock")
-        wake_lock.acquire()
-        return wake_lock
-    except Exception as e:
-        print(f"Erro WakeLock no Service: {e}")
-        return None
-
-def tocar_som():
-    try:
-        PythonService = autoclass('org.kivy.android.PythonService')
-        service = PythonService.mContext
-        
         app_dir = service.getFilesDir().getAbsolutePath() + "/app/sirene.mp3"
         
         if os.path.exists(app_dir):
-            MediaPlayer = autoclass('android.media.MediaPlayer')
             player = MediaPlayer()
+            
+            # 1. Dá permissão de hardware para o tocador acionar o processador
+            player.setWakeMode(service, PowerManager.PARTIAL_WAKE_LOCK)
+            
+            # 2. Define o canal de áudio como ALARME (impede o silenciamento na suspensão)
+            attr_builder = autoclass('android.media.AudioAttributes$Builder')()
+            attr_builder.setUsage(AudioAttributes.USAGE_ALARM)
+            attr_builder.setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+            
+            player.setAudioAttributes(attr_builder.build())
             player.setDataSource(app_dir)
             player.prepare()
             player.start()
     except Exception as e:
         print(f"Erro ao tocar no Service: {e}")
 
-# 1. Ativa a notificação visível na barra do Android
+# Inicia a notificação e o loop
 iniciar_foreground_notification()
 
-# 2. Segura a CPU
-lock = adquirir_wake_lock()
-
-# 3. Loop do alarme a cada 5 segundos
 while True:
-    tocar_som()
+    tocar_som_com_wakelock()
     time.sleep(5)
