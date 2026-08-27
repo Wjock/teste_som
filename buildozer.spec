@@ -19,7 +19,7 @@ android.permissions = FOREGROUND_SERVICE, FOREGROUND_SERVICE_MEDIA_PLAYBACK, POS
 android.service_foreground_types = mediaPlayback
 
 # Declaração do serviço em segundo plano
-services = srvsom:service.py:foreground
+#services = srvsom:service.py:foreground
 
 android.api = 33
 android.minapi = 21
