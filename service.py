@@ -13,48 +13,43 @@ def iniciar_foreground():
         service = PythonService.mContext
         nm = service.getSystemService(Context.NOTIFICATION_SERVICE)
         
-        CHANNEL_ID = "canal_srvsom_v7"
+        CHANNEL_ID = "canal_srvsom_prioridade_maxima"
+        
+        # Canal IMPORTANCE_HIGH obriga o Android a mostrar o ícone na barra de status
         channel = NotificationChannel(
             CHANNEL_ID,
             "Servico Srvsom Ativo",
             NotificationManager.IMPORTANCE_HIGH
         )
+        channel.setLockscreenVisibility(1)  # VISIBILITY_PUBLIC (Mostra no bloqueio)
         nm.createNotificationChannel(channel)
         
         builder = NotificationBuilder(service, CHANNEL_ID)
         builder.setContentTitle("a_teste_som")
-        builder.setContentText("Serviço Srvsom em execução")
+        builder.setContentText("Serviço Srvsom em execução permanente")
         builder.setSmallIcon(service.getApplicationInfo().icon)
+        builder.setOngoing(True)  # Torna a notificação fixa (não pode ser apagada com deslize)
         
+        # Dispara o serviço em primeiro plano real
         service.startForeground(101, builder.build())
+        print("startForeground executado com sucesso com prioridade MAXIMA!")
     except Exception as e:
-        print(f"Erro no Foreground: {e}")
+        print(f"Erro ao ativar Foreground real: {e}")
 
-def executar_pulso_alarme():
-    """Executa o disparo isolando cada componente do hardware para evitar crash do serviço."""
+def executar_pulso():
     PythonService = autoclass('org.kivy.android.PythonService')
     Context = autoclass('android.content.Context')
     service = PythonService.mContext
 
-    # 1. TENTA ACENDER A TELA (Comando Acorda em bloco protegido)
-    try:
-        PowerManager = autoclass('android.os.PowerManager')
-        pm = service.getSystemService(Context.POWER_SERVICE)
-        # 26 = SCREEN_BRIGHT_WAKE_LOCK | 1 = ACQUIRE_CAUSES_WAKEUP
-        wake_lock = pm.newWakeLock(27, "a_teste_som:AcordaLock")
-        wake_lock.acquire(1500)  # Segura por 1.5s e libera automaticamente pelo sistema
-    except Exception as e_wake:
-        print(f"Erro no WakeLock de tela: {e_wake}")
-
-    # 2. TENTA VIBRAR (Motor de Vibração)
+    # 1. Vibração de hardware
     try:
         vibrator = service.getSystemService(Context.VIBRATOR_SERVICE)
         if vibrator and vibrator.hasVibrator():
             vibrator.vibrate(500)
     except Exception as e_vib:
-        print(f"Erro na vibracao: {e_vib}")
+        print(f"Erro vibra: {e_vib}")
 
-    # 3. TENTA TOCAR O SOM (MediaPlayer com Atributo de Alarme)
+    # 2. Som via MediaPlayer
     try:
         MediaPlayer = autoclass('android.media.MediaPlayer')
         AudioAttributes = autoclass('android.media.AudioAttributes')
@@ -72,16 +67,16 @@ def executar_pulso_alarme():
             player.prepare()
             player.start()
     except Exception as e_som:
-        print(f"Erro no som: {e_som}")
+        print(f"Erro som: {e_som}")
 
-# 1. Ativa a notificação fixa do Srvsom
+# Ativa o primeiro plano obrigatoriamente
 iniciar_foreground()
 
-# 2. Loop contínuo a cada 5 segundos blindado contra exceções
+# Loop contínuo a cada 5 segundos
 while True:
     try:
-        executar_pulso_alarme()
+        executar_pulso()
     except Exception as e_loop:
-        print(f"Erro geral no loop: {e_loop}")
+        print(f"Erro no loop: {e_loop}")
         
     time.sleep(5)
