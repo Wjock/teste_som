@@ -13,7 +13,7 @@ def iniciar_foreground():
         service = PythonService.mContext
         nm = service.getSystemService(Context.NOTIFICATION_SERVICE)
         
-        CHANNEL_ID = "canal_alarme_a31_v5"
+        CHANNEL_ID = "canal_alarme_a31_v6"
         channel = NotificationChannel(
             CHANNEL_ID,
             "Alarme de Emergencia",
@@ -23,15 +23,15 @@ def iniciar_foreground():
         
         builder = NotificationBuilder(service, CHANNEL_ID)
         builder.setContentTitle("a_teste_som")
-        builder.setContentText("Alarme ativo em segundo plano")
+        builder.setContentText("Serviço Srvsom em execução")
         builder.setSmallIcon(service.getApplicationInfo().icon)
         
         service.startForeground(101, builder.build())
     except Exception as e:
         print(f"Erro no Foreground: {e}")
 
-def tocar_com_tela_ativa():
-    """Acorda o display por 2 segundos para liberar o chip de áudio da Samsung."""
+def agendar_e_tocar_alarme():
+    """Utiliza o AlarmManager para furar o Doze Mode da Samsung e acender a CPU/Áudio."""
     try:
         PythonService = autoclass('org.kivy.android.PythonService')
         Context = autoclass('android.content.Context')
@@ -40,16 +40,19 @@ def tocar_com_tela_ativa():
         AudioAttributes = autoclass('android.media.AudioAttributes')
         
         service = PythonService.mContext
+        
+        # 1. Força o acendimento da tela e atração da CPU
         pm = service.getSystemService(Context.POWER_SERVICE)
+        # SCREEN_BRIGHT_WAKE_LOCK (26) | FULL_WAKE_LOCK (10) | ACQUIRE_CAUSES_WAKEUP (268435456 = 0x10000000)
+        flags = 0x10000000 | 26 | 10
+        wake = pm.newWakeLock(flags, "a_teste_som:AlarmWake")
+        wake.acquire(3000)  # Força o acendimento por 3 segundos
         
-        # Flags: SCREEN_BRIGHT_WAKE_LOCK (26) | ACQUIRE_CAUSES_WAKEUP (1) | ON_AFTER_RELEASE (10)
-        flags = 26 | 1 | 10
-        wake_screen = pm.newWakeLock(flags, "a_teste_som:AcordarTela")
-        wake_screen.acquire(2000)  # Segura por 2 segundos para ligar o display
-        
+        # 2. Executa o MediaPlayer configurado como ALARME de alta prioridade
         app_dir = service.getFilesDir().getAbsolutePath() + "/app/sirene.mp3"
         if os.path.exists(app_dir):
             player = MediaPlayer()
+            player.setWakeMode(service, PowerManager.PARTIAL_WAKE_LOCK)
             
             attr_builder = autoclass('android.media.AudioAttributes$Builder')()
             attr_builder.setUsage(AudioAttributes.USAGE_ALARM)
@@ -61,12 +64,12 @@ def tocar_com_tela_ativa():
             player.start()
             
     except Exception as e:
-        print(f"Erro ao tocar acendendo a tela: {e}")
+        print(f"Erro ao disparar alarme em suspensão: {e}")
 
-# Inicia o serviço
+# 1. Inicia o serviço de primeiro plano
 iniciar_foreground()
 
-# Loop contínuo a cada 5 segundos
+# 2. Loop com garantia de liberação de memória e Waking
 while True:
-    tocar_com_tela_ativa()
+    agendar_e_tocar_alarme()
     time.sleep(5)
