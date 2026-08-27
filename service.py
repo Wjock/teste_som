@@ -1,3 +1,4 @@
+import os
 import time
 from jnius import autoclass
 
@@ -12,57 +13,86 @@ def iniciar_foreground():
         service = PythonService.mContext
         nm = service.getSystemService(Context.NOTIFICATION_SERVICE)
         
-        CHANNEL_ID = "canal_alarme_activity"
+        CHANNEL_ID = "canal_teste_acorda"
         channel = NotificationChannel(
             CHANNEL_ID,
-            "Alarme de Emergencia",
+            "Teste Acorda Tela",
             NotificationManager.IMPORTANCE_HIGH
         )
         nm.createNotificationChannel(channel)
         
         builder = NotificationBuilder(service, CHANNEL_ID)
         builder.setContentTitle("a_teste_som")
-        builder.setContentText("Serviço Srvsom em execução")
+        builder.setContentText("Teste de acendimento ativo")
         builder.setSmallIcon(service.getApplicationInfo().icon)
         
         service.startForeground(101, builder.build())
     except Exception as e:
         print(f"Erro no Foreground: {e}")
 
-def disparar_intent_para_activity():
-    """Acorda a Activity principal para forçar o acendimento da tela e liberação do áudio."""
-    try:
-        PythonService = autoclass('org.kivy.android.PythonService')
-        Intent = autoclass('android.content.Intent')
-        
-        service = PythonService.mContext
-        
-        # Cria a Intent para a Activity principal (PythonActivity)
-        intent = Intent(service, autoclass('org.kivy.android.PythonActivity'))
-        # FLAG_ACTIVITY_NEW_TASK (268435456) | FLAG_ACTIVITY_SINGLE_TOP (536870912) | FLAG_ACTIVITY_REORDER_TO_FRONT (131072)
-        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_SINGLE_TOP | Intent.FLAG_ACTIVITY_REORDER_TO_FRONT)
-        
-        # Dispara a Activity que está registrada com as flags de acender a tela
-        service.startActivity(intent)
-    except Exception as e:
-        print(f"Erro ao disparar Intent para Activity: {e}")
-
-# 1. Registra o serviço de primeiro plano
-iniciar_foreground()
-
-# 2. Mantém o WakeLock básico da CPU
-try:
+def ciclo_acorda_toca_dormir():
+    """Acorda a tela por 2 segundos, toca a sirene + vibra e depois manda a tela dormir."""
     PythonService = autoclass('org.kivy.android.PythonService')
     Context = autoclass('android.content.Context')
     PowerManager = autoclass('android.os.PowerManager')
+    MediaPlayer = autoclass('android.media.MediaPlayer')
+    AudioAttributes = autoclass('android.media.AudioAttributes')
+    
     service = PythonService.mContext
     pm = service.getSystemService(Context.POWER_SERVICE)
-    wake_lock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "a_teste_som:LoopLock")
-    wake_lock.acquire()
-except Exception as e:
-    print(f"Erro WakeLock: {e}")
+    
+    # 1. COMANDO ACORDAR:
+    # 26 = SCREEN_BRIGHT_WAKE_LOCK | 1 = ACQUIRE_CAUSES_WAKEUP | 10 = ON_AFTER_RELEASE
+    flags_acordar = 26 | 1 | 10
+    screen_lock = pm.newWakeLock(flags_acordar, "a_teste_som:AcordaLock")
+    
+    try:
+        # Pressiona o "botão virtual" para ligar a tela
+        screen_lock.acquire()
+        
+        # 2. Vibração (Hardware)
+        try:
+            vibrator = service.getSystemService(Context.VIBRATOR_SERVICE)
+            if vibrator and vibrator.hasVibrator():
+                vibrator.vibrate(500)
+        except Exception as e_vib:
+            print(f"Erro vibra: {e_vib}")
 
-# 3. Loop contínuo: acorda a Activity a cada 5 segundos
+        # 3. Toca o Som (Com a tela acesa pelo acquire)
+        app_dir = service.getFilesDir().getAbsolutePath() + "/app/sirene.mp3"
+        if os.path.exists(app_dir):
+            player = MediaPlayer()
+            attr_builder = autoclass('android.media.AudioAttributes$Builder')()
+            attr_builder.setUsage(AudioAttributes.USAGE_ALARM)
+            attr_builder.setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+            
+            player.setAudioAttributes(attr_builder.build())
+            player.setDataSource(app_dir)
+            player.prepare()
+            player.start()
+            
+        # Mantém a tela acesa por 2 segundos para o som tocar
+        time.sleep(2)
+        
+    except Exception as e:
+        print(f"Erro no ciclo acorda/toca: {e}")
+        
+    finally:
+        # 4. COMANDO DORMIR: Libera o lock da tela para o Android apagar
+        try:
+            if screen_lock.isHeld():
+                screen_lock.release()
+        except Exception as e_rel:
+            print(f"Erro ao liberar tela: {e_rel}")
+
+# Inicia o serviço de primeiro plano
+iniciar_foreground()
+
+# Loop contínuo com proteção try...except
 while True:
-    disparar_intent_para_activity()
+    try:
+        ciclo_acorda_toca_dormir()
+    except Exception as e_main:
+        print(f"Erro no loop principal: {e_main}")
+        
     time.sleep(5)
