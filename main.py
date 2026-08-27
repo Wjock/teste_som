@@ -10,7 +10,8 @@ from kivy.utils import platform
 class TesteSomApp(App):
     def build(self):
         self.wake_lock = None
-        self.player = None
+        self.alarme_ativo = True
+        self.event_clock = None
         
         layout = FloatLayout()
         
@@ -20,7 +21,7 @@ class TesteSomApp(App):
             self.rect = Rectangle(size=(2000, 2000), pos=(0, 0))
             
         lbl_titulo = Label(
-            text="a_teste_som (Modo Direto)",
+            text="a_teste_som",
             font_size='24sp',
             bold=True,
             pos_hint={'center_x': 0.5, 'y': 0.38}
@@ -28,84 +29,91 @@ class TesteSomApp(App):
         layout.add_widget(lbl_titulo)
         
         self.lbl_status = Label(
-            text="Status: Alarme Ativo (5 segundos)",
+            text="Status: Alarme ATIVO (A cada 5s)",
             font_size='18sp',
             color=(0.2, 0.8, 0.2, 1),
             pos_hint={'center_x': 0.5, 'y': 0.28}
         )
         layout.add_widget(self.lbl_status)
         
-        btn_teste = Button(
-            text="[ TESTAR DISPARO MANUAL ]",
+        # Botão de Liga / Desliga Alternado (Para não sobrepor)
+        self.btn_toggle = Button(
+            text="[ PAUSAR ALARME ]",
             font_size='18sp',
             bold=True,
             size_hint=(0.85, 0.12),
             pos_hint={'center_x': 0.5, 'y': 0.12},
             background_normal='',
-            background_color=(0.0, 0.47, 0.84, 1)
+            background_color=(0.85, 0.2, 0.2, 1) # Vermelho para pausar
         )
-        btn_teste.bind(on_press=self.disparar_manual)
-        layout.add_widget(btn_teste)
+        self.btn_toggle.bind(on_press=self.alternar_alarme)
+        layout.add_widget(self.btn_toggle)
         
         if platform == 'android':
             self.configurar_hardware_android()
             
-        # Agenda o disparo continuo a cada 5 segundos no loop do Kivy
-        Clock.schedule_interval(self.executar_pulso_alarme, 5)
+        # Agenda o disparo continuo a cada 5 segundos
+        self.event_clock = Clock.schedule_interval(self.executar_pulso_alarme, 5)
             
         return layout
 
+    def on_pause(self):
+        """RETORNA TRUE: Impede a Samsung de congelar o app ao apagar a tela!"""
+        return True
+
+    def on_resume(self):
+        """Re-garante que as permissões de tela fiquem ativas ao voltar."""
+        if platform == 'android':
+            self.configurar_hardware_android()
+
     def configurar_hardware_android(self):
-        """Configura flags de tela acesa no bloqueio e ativa o WakeLock da CPU."""
+        """Mantém a CPU ativa em suspensão via WakeLock."""
         try:
             from jnius import autoclass
             PythonActivity = autoclass('org.kivy.android.PythonActivity')
             activity = PythonActivity.mActivity
-            WindowManager = autoclass('android.view.WindowManager$LayoutParams')
             Context = autoclass('android.content.Context')
             PowerManager = autoclass('android.os.PowerManager')
             
-            # 1. Configura flags de tela para acender e sobrepor a tela de bloqueio
-            # SHOW_WHEN_LOCKED (4718592) | TURN_SCREEN_ON (2097152) | KEEP_SCREEN_ON (128) | DISMISS_KEYGUARD (4194304)
+            # Flags de tela sobre a tela de bloqueio
             flags = 4718592 | 2097152 | 128 | 4194304
-            
             activity.runOnUiThread(
                 autoclass('java.lang.Runnable')(
                     lambda: activity.getWindow().addFlags(flags)
                 )
             )
             
-            # 2. Ativa PARTIAL_WAKE_LOCK para manter a CPU rodando na suspensão
+            # PARTIAL_WAKE_LOCK impede a CPU de entrar em suspensão
             pm = activity.getSystemService(Context.POWER_SERVICE)
-            self.wake_lock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "a_teste_som:DirectCpuLock")
-            self.wake_lock.acquire()
-            print("WakeLock da CPU ativado com sucesso!")
+            if not self.wake_lock:
+                self.wake_lock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "a_teste_som:CpuLockPermanente")
+                self.wake_lock.acquire()
         except Exception as e:
             print(f"Erro ao configurar hardware: {e}")
 
     def executar_pulso_alarme(self, dt=None):
-        """Dispara a vibração, som e acendimento de tela a cada 5 segundos."""
+        if not self.alarme_ativo:
+            return
+
         if platform == 'android':
             try:
                 from jnius import autoclass
                 PythonActivity = autoclass('org.kivy.android.PythonActivity')
                 Context = autoclass('android.content.Context')
-                PowerManager = autoclass('android.os.PowerManager')
                 MediaPlayer = autoclass('android.media.MediaPlayer')
                 AudioAttributes = autoclass('android.media.AudioAttributes')
                 
                 activity = PythonActivity.mActivity
                 
-                # 1. Acorda o Display (Comando Acorda)
+                # 1. Acorda o Display por 1.5s
                 try:
                     pm = activity.getSystemService(Context.POWER_SERVICE)
-                    # SCREEN_BRIGHT_WAKE_LOCK (26) | ACQUIRE_CAUSES_WAKEUP (1) | ON_AFTER_RELEASE (10)
-                    wake_screen = pm.newWakeLock(26 | 1 | 10, "a_teste_som:AcordaTelaDirect")
+                    wake_screen = pm.newWakeLock(26 | 1 | 10, "a_teste_som:AcordaTelaLoop")
                     wake_screen.acquire(1500)
                 except Exception as e_w:
                     print(f"Erro Wake: {e_w}")
 
-                # 2. Vibração do Hardware
+                # 2. Vibração de Hardware
                 try:
                     vibrator = activity.getSystemService(Context.VIBRATOR_SERVICE)
                     if vibrator and vibrator.hasVibrator():
@@ -113,7 +121,7 @@ class TesteSomApp(App):
                 except Exception as e_v:
                     print(f"Erro Vib: {e_v}")
 
-                # 3. Toca o Som sirene.mp3 no Canal de Alarme
+                # 3. Toca o Som sirene.mp3 no Canal de Alarme Nativo
                 app_dir = activity.getFilesDir().getAbsolutePath() + "/app/sirene.mp3"
                 if os.path.exists(app_dir):
                     player = MediaPlayer()
@@ -129,8 +137,19 @@ class TesteSomApp(App):
             except Exception as e:
                 print(f"Erro no pulso de alarme: {e}")
 
-    def disparar_manual(self, instance):
-        self.executar_pulso_alarme()
+    def alternar_alarme(self, instance):
+        """Liga ou Desliga o ciclo sem sobrepor chamadas."""
+        self.alarme_ativo = not self.alarme_ativo
+        if self.alarme_ativo:
+            self.lbl_status.text = "Status: Alarme ATIVO (A cada 5s)"
+            self.lbl_status.color = (0.2, 0.8, 0.2, 1)
+            self.btn_toggle.text = "[ PAUSAR ALARME ]"
+            self.btn_toggle.background_color = (0.85, 0.2, 0.2, 1)
+        else:
+            self.lbl_status.text = "Status: Alarme PAUSADO"
+            self.lbl_status.color = (0.8, 0.8, 0.8, 1)
+            self.btn_toggle.text = "[ REINICIAR ALARME ]"
+            self.btn_toggle.background_color = (0.0, 0.47, 0.84, 1)
 
 if __name__ == '__main__':
     TesteSomApp().run()
