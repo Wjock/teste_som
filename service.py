@@ -54,17 +54,24 @@ def tocar_som():
         PowerManager = autoclass('android.os.PowerManager')
         MediaPlayer = autoclass('android.media.MediaPlayer')
         AudioAttributes = autoclass('android.media.AudioAttributes')
+        AudioManager = autoclass('android.media.AudioManager')
         
         service = PythonService.mContext
+        
+        # 1. Requisita o Foco de Áudio do sistema (Essencial para tocar com tela apagada)
+        audio_manager = service.getSystemService(Context.AUDIO_SERVICE)
+        # 3 representa STREAM_MUSIC / USAGE_ALARM
+        audio_manager.requestAudioFocus(None, AudioManager.STREAM_ALARM, AudioManager.AUDIOFOCUS_GAIN_TRANSIENT_MAY_DUCK)
+        
         app_dir = service.getFilesDir().getAbsolutePath() + "/app/sirene.mp3"
         
         if os.path.exists(app_dir):
             player = MediaPlayer()
             
-            # Mantém a CPU ativa durante a reprodução do som
+            # Mantém a CPU ativa durante a reprodução
             player.setWakeMode(service, PowerManager.PARTIAL_WAKE_LOCK)
             
-            # Força o fluxo de áudio como ALARME (evita o silenciamento na suspensão)
+            # Configura atributos de Alarme
             attr_builder = autoclass('android.media.AudioAttributes$Builder')()
             attr_builder.setUsage(AudioAttributes.USAGE_ALARM)
             attr_builder.setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
@@ -76,10 +83,10 @@ def tocar_som():
     except Exception as e:
         print(f"Erro ao tocar no Service: {e}")
 
-# 1. Ativa a notificação que gera o Srvsom na barra
+# 1. Ativa a notificação do Srvsom
 iniciar_foreground_notification()
 
-# 2. Segura a CPU do A31
+# 2. Segura a CPU
 lock = adquirir_wake_lock()
 
 # 3. Loop do alarme a cada 5 segundos
