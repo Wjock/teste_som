@@ -18,9 +18,40 @@ class TesteSomApp(App):
         layout.add_widget(btn_tocar)
         
         if platform == 'android':
+            self.configurar_flags_tela_bloqueio()
             self.iniciar_servico_android()
             
         return layout
+
+    def configurar_flags_tela_bloqueio(self):
+        """Ativa as flags nativas do Android para acender a tela sobre o bloqueio."""
+        try:
+            from jnius import autoclass
+            PythonActivity = autoclass('org.kivy.android.PythonActivity')
+            activity = PythonActivity.mActivity
+            WindowManager = autoclass('android.view.WindowManager$LayoutParams')
+            
+            # Flags para acordar o display e mostrar sobre a tela de bloqueio
+            # FLAG_SHOW_WHEN_LOCKED (4718592) | FLAG_TURN_SCREEN_ON (2097152) | FLAG_KEEP_SCREEN_ON (128)
+            flags = (
+                WindowManager.FLAG_SHOW_WHEN_LOCKED |
+                WindowManager.FLAG_TURN_SCREEN_ON |
+                WindowManager.FLAG_KEEP_SCREEN_ON |
+                WindowManager.FLAG_DISMISS_KEYGUARD
+            )
+            
+            activity.runOnUiThread(
+                autoclass('java.lang.Runnable')(
+                    lambda: activity.getWindow().addFlags(flags)
+                )
+            )
+        except Exception as e:
+            print(f"Erro ao configurar flags da janela: {e}")
+
+    def on_new_intent(self, intent):
+        """Chamado quando o serviço envia um disparo para a Activity acesa."""
+        if platform == 'android':
+            self.executar_alarme_completo()
 
     def iniciar_servico_android(self):
         try:
@@ -33,23 +64,43 @@ class TesteSomApp(App):
         except Exception as e:
             print(f"Erro ao iniciar servico: {e}")
 
-    def tocar_som_manual(self, instance):
+    def executar_alarme_completo(self):
+        """Executa o som e a vibração com a tela e a GPU ativas."""
         if platform == 'android':
             try:
                 from jnius import autoclass
-                MediaPlayer = autoclass('android.media.MediaPlayer')
                 PythonActivity = autoclass('org.kivy.android.PythonActivity')
+                Context = autoclass('android.content.Context')
+                MediaPlayer = autoclass('android.media.MediaPlayer')
+                AudioAttributes = autoclass('android.media.AudioAttributes')
                 
                 activity = PythonActivity.mActivity
                 app_dir = activity.getFilesDir().getAbsolutePath() + "/app/sirene.mp3"
 
+                # 1. Vibração via hardware
+                try:
+                    vibrator = activity.getSystemService(Context.VIBRATOR_SERVICE)
+                    if vibrator and vibrator.hasVibrator():
+                        vibrator.vibrate(500)
+                except Exception as e_vib:
+                    print(f"Erro vibra main: {e_vib}")
+
+                # 2. Som via MediaPlayer de Alarme
                 if os.path.exists(app_dir):
                     player = MediaPlayer()
+                    attr_builder = autoclass('android.media.AudioAttributes$Builder')()
+                    attr_builder.setUsage(AudioAttributes.USAGE_ALARM)
+                    attr_builder.setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                    
+                    player.setAudioAttributes(attr_builder.build())
                     player.setDataSource(app_dir)
                     player.prepare()
                     player.start()
             except Exception as e:
-                print(f"Erro ao tocar mp3 manual: {e}")
+                print(f"Erro ao tocar alarme no main: {e}")
+
+    def tocar_som_manual(self, instance):
+        self.executar_alarme_completo()
 
 if __name__ == '__main__':
     TesteSomApp().run()
