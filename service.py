@@ -12,13 +12,13 @@ def iniciar_foreground_notification():
         NotificationChannel = autoclass('android.app.NotificationChannel')
         Context = autoclass('android.content.Context')
         
-        CHANNEL_ID = "canal_alarme_teste"
+        CHANNEL_ID = "canal_alarme_a31_v2"
         
         notification_manager = service.getSystemService(Context.NOTIFICATION_SERVICE)
         channel = NotificationChannel(
             CHANNEL_ID,
-            "Alarme Ativo",
-            NotificationManager.IMPORTANCE_LOW
+            "Servico Alarme Ativo",
+            NotificationManager.IMPORTANCE_HIGH
         )
         notification_manager.createNotificationChannel(channel)
         
@@ -30,7 +30,7 @@ def iniciar_foreground_notification():
         notification = builder.build()
         service.startForeground(101, notification)
     except Exception as e:
-        print(f"Erro ao iniciar Foreground Notification: {e}")
+        print(f"Erro no Foreground: {e}")
 
 def adquirir_wake_lock():
     try:
@@ -44,61 +44,59 @@ def adquirir_wake_lock():
         wake_lock.acquire()
         return wake_lock
     except Exception as e:
-        print(f"Erro WakeLock no Service: {e}")
+        print(f"Erro no WakeLock: {e}")
         return None
 
-def vibrar_dispositivo(duracao_ms=500):
-    """Aciona diretamente o motor de vibração do hardware do celular."""
+def disparar_alarme_e_vibracao():
+    """Dispara som e vibração usando as APIs nativas de Alarme do Android."""
     try:
         PythonService = autoclass('org.kivy.android.PythonService')
         Context = autoclass('android.content.Context')
-        service = PythonService.mContext
+        RingtoneManager = autoclass('android.media.RingtoneManager')
+        Uri = autoclass('android.net.Uri')
         
-        vibrator = service.getSystemService(Context.VIBRATOR_SERVICE)
-        if vibrator and vibrator.hasVibrator():
-            vibrator.vibrate(duracao_ms)
-    except Exception as e:
-        print(f"Erro ao vibrar: {e}")
+        service = PythonService.mContext
 
-def tocar_som():
-    try:
-        PythonService = autoclass('org.kivy.android.PythonService')
-        Context = autoclass('android.content.Context')
-        PowerManager = autoclass('android.os.PowerManager')
-        MediaPlayer = autoclass('android.media.MediaPlayer')
-        AudioAttributes = autoclass('android.media.AudioAttributes')
-        AudioManager = autoclass('android.media.AudioManager')
-        
-        service = PythonService.mContext
-        
-        audio_manager = service.getSystemService(Context.AUDIO_SERVICE)
-        audio_manager.requestAudioFocus(None, AudioManager.STREAM_ALARM, AudioManager.AUDIOFOCUS_GAIN_TRANSIENT_MAY_DUCK)
-        
-        app_dir = service.getFilesDir().getAbsolutePath() + "/app/sirene.mp3"
-        
-        if os.path.exists(app_dir):
-            player = MediaPlayer()
-            player.setWakeMode(service, PowerManager.PARTIAL_WAKE_LOCK)
+        # 1. Toca o Som via RingtoneManager (Usando o som de ALARME padrão do Android ou o arquivo)
+        try:
+            app_dir = service.getFilesDir().getAbsolutePath() + "/app/sirene.mp3"
+            if os.path.exists(app_dir):
+                file_obj = autoclass('java.io.File')(app_dir)
+                sound_uri = Uri.fromFile(file_obj)
+            else:
+                sound_uri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM)
+
+            ringtone = RingtoneManager.getRingtone(service, sound_uri)
             
+            # Configura como Canal de Alarme
+            AudioAttributes = autoclass('android.media.AudioAttributes')
             attr_builder = autoclass('android.media.AudioAttributes$Builder')()
             attr_builder.setUsage(AudioAttributes.USAGE_ALARM)
             attr_builder.setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+            ringtone.setAudioAttributes(attr_builder.build())
             
-            player.setAudioAttributes(attr_builder.build())
-            player.setDataSource(app_dir)
-            player.prepare()
-            player.start()
-    except Exception as e:
-        print(f"Erro ao tocar no Service: {e}")
+            ringtone.play()
+        except Exception as e_sound:
+            print(f"Erro no som: {e_sound}")
 
-# 1. Ativa a notificação fixa (Srvsom)
+        # 2. Aciona a Vibração
+        try:
+            vibrator = service.getSystemService(Context.VIBRATOR_SERVICE)
+            if vibrator and vibrator.hasVibrator():
+                vibrator.vibrate(500)  # 500 ms
+        except Exception as e_vib:
+            print(f"Erro na vibracao: {e_vib}")
+
+    except Exception as e:
+        print(f"Erro geral no disparo: {e}")
+
+# 1. Ativa a notificação fixa de primeiro plano
 iniciar_foreground_notification()
 
-# 2. Segura a CPU
+# 2. Ativa o WakeLock do processador
 lock = adquirir_wake_lock()
 
-# 3. Loop do alarme (Vibração + Som) a cada 5 segundos
+# 3. Loop contínuo a cada 5 segundos
 while True:
-    vibrar_dispositivo(500)  # Vibra por meio segundo
-    tocar_som()             # Toca a sirene
+    disparar_alarme_e_vibracao()
     time.sleep(5)
