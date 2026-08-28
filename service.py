@@ -2,7 +2,7 @@ import os
 import time
 from jnius import autoclass
 
-def iniciar_foreground():
+def iniciar_notificacao_fixa():
     try:
         PythonService = autoclass('org.kivy.android.PythonService')
         Context = autoclass('android.content.Context')
@@ -13,39 +13,39 @@ def iniciar_foreground():
         service = PythonService.mContext
         nm = service.getSystemService(Context.NOTIFICATION_SERVICE)
         
-        CHANNEL_ID = "canal_srvsom_v10"
+        CHANNEL_ID = "canal_srvsom_v11"
         channel = NotificationChannel(
             CHANNEL_ID,
-            "Alarme de Emergencia Srvsom",
+            "Servico de Alarme",
             NotificationManager.IMPORTANCE_HIGH
         )
         nm.createNotificationChannel(channel)
         
         builder = NotificationBuilder(service, CHANNEL_ID)
         builder.setContentTitle("a_teste_som")
-        builder.setContentText("Serviço de Alarme Nativo Rodando")
+        builder.setContentText("Serviço de Alarme ativo")
         builder.setSmallIcon(service.getApplicationInfo().icon)
         builder.setOngoing(True)
         
         service.startForeground(101, builder.build())
     except Exception as e:
-        print(f"Erro no Foreground: {e}")
+        print(f"Erro ao criar notificacao: {e}")
 
-def disparar_hardware_nativo():
-    """Acorda a CPU e o Display, vibra e toca a sirene."""
+def disparar_hardware():
+    """Acorda a tela, vibra e toca a sirene."""
     try:
         PythonService = autoclass('org.kivy.android.PythonService')
         Context = autoclass('android.content.Context')
         service = PythonService.mContext
 
-        # 1. Acorda o Display (Comando Acorda Nativo)
+        # 1. Acorda Tela
         try:
             PowerManager = autoclass('android.os.PowerManager')
             pm = service.getSystemService(Context.POWER_SERVICE)
-            wake_lock = pm.newWakeLock(26 | 1 | 10, "a_teste_som:AlarmWake")
+            wake_lock = pm.newWakeLock(26 | 1 | 10, "a_teste_som:SrvLock")
             wake_lock.acquire(1500)
         except Exception as e_w:
-            print(f"Erro Wake: {e_w}")
+            print(f"Erro WakeLock: {e_w}")
 
         # 2. Vibração
         try:
@@ -53,7 +53,7 @@ def disparar_hardware_nativo():
             if vibrator and vibrator.hasVibrator():
                 vibrator.vibrate(500)
         except Exception as e_v:
-            print(f"Erro Vib: {e_v}")
+            print(f"Erro Vibração: {e_v}")
 
         # 3. Som Sirene
         try:
@@ -76,16 +76,12 @@ def disparar_hardware_nativo():
             print(f"Erro Som: {e_s}")
 
     except Exception as e:
-        print(f"Erro no disparo de hardware: {e}")
+        print(f"Erro geral no hardware: {e}")
 
-# 1. Inicia o serviço
-iniciar_foreground()
+# Inicia a notificação de primeiro plano
+iniciar_notificacao_fixa()
 
-# 2. Loop continuo de disparo
+# Loop contínuo a cada 5 segundos
 while True:
-    try:
-        disparar_hardware_nativo()
-    except Exception as e_loop:
-        print(f"Erro loop: {e_loop}")
-        
+    disparar_hardware()
     time.sleep(5)
